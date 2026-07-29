@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Conveniência{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topo">
+        <span class="marca">Conveniência</span>
+        <nav>
+            <a href="{{ url_for('venda') }}">Venda</a>
+            <a href="{{ url_for('compras') }}">Compras</a>
+            <a href="{{ url_for('inventario') }}">Inventário</a>
+            <a href="{{ url_for('estoque') }}">Estoque</a>
+            <a href="{{ url_for('caixa') }}">Caixa</a>
+            <a href="{{ url_for('historico') }}">Histórico</a>
+            <a href="{{ url_for('relatorios') }}">Relatórios</a>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('logout') }}">Sair</a>
+        </nav>
+    </header>
+    <main>
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% if mensagens %}
+        {% for categoria, texto in mensagens %}
+        <p class="aviso {{ categoria }}">{{ texto }}</p>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block conteudo %}{% endblock %}
+    </main>
+</body>
+</html>

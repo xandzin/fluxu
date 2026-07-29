@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar — Conveniência</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="tela-login">
+        <form class="card login-card" method="post">
+            <h1>Conveniência</h1>
+            {% if primeiro_acesso %}
+            <p class="info">Primeiro acesso — defina a senha do sistema. Essa senha é única e compartilhada por
+                toda a equipe.</p>
+            {% endif %}
+            {% if erro %}
+            <p class="aviso erro">{{ erro }}</p>
+            {% endif %}
+            <div class="campo">
+                <label for="senha">{{ "Nova senha" if primeiro_acesso else "Senha" }}</label>
+                <input id="senha" name="senha" type="password" autofocus required>
+            </div>
+            {% if primeiro_acesso %}
+            <div class="campo">
+                <label for="confirmar">Confirme a senha</label>
+                <input id="confirmar" name="confirmar" type="password" required>
+            </div>
+            {% endif %}
+            <button type="submit" class="primario">{{ "Definir senha e entrar" if primeiro_acesso else "Entrar" }}</button>
+        </form>
+    </main>
+</body>
+</html>

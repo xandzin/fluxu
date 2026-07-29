@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}Venda — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Registrar venda</h1>
+
+<section class="card">
+    <label for="busca">SKU/EAN ou nome do produto</label>
+    <input id="busca" type="text" autocomplete="off" autofocus
+           placeholder="Digite ou passe o leitor de código de barras...">
+    <ul id="resultados" class="lista-resultados hidden"></ul>
+</section>
+
+<section id="painel-item" class="card hidden">
+    <h2 id="item-descricao"></h2>
+    <p id="item-info" class="info"></p>
+    <div class="linha">
+        <div>
+            <label for="quantidade">Quantidade</label>
+            <input id="quantidade" type="number" step="any" min="0.0001" value="1">
+        </div>
+        <div>
+            <label for="preco">Preço unitário (R$)</label>
+            <input id="preco" type="number" step="0.01" min="0">
+        </div>
+    </div>
+    <div class="botoes">
+        <button id="btn-confirmar" class="primario">Registrar item</button>
+        <button id="btn-cancelar" class="secundario">Cancelar</button>
+    </div>
+    <p id="item-aviso" class="aviso hidden"></p>
+</section>
+
+<section class="card">
+    <h2>Venda atual</h2>
+    <table id="tabela-carrinho">
+        <thead>
+            <tr><th>Produto</th><th>Qtd</th><th>Preço</th><th>Total</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p id="sem-itens" class="info">Nenhum item registrado ainda.</p>
+    <div class="total-linha">
+        <span>Total</span>
+        <span id="total-venda">R$ 0,00</span>
+    </div>
+
+    <div class="campo">
+        <label for="forma-pagamento">Forma de pagamento</label>
+        <select id="forma-pagamento">
+            <option value="">Selecione...</option>
+            {% for f in formas_pagamento %}
+            <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <p id="finalizar-aviso" class="aviso erro hidden"></p>
+
+    <div class="botoes">
+        <button id="btn-finalizar" class="primario">Finalizar venda</button>
+    </div>
+</section>
+
+<div id="modal-sucesso" class="modal-fundo hidden">
+    <div class="modal-caixa">
+        <div class="modal-check">✓</div>
+        <h2>Venda finalizada</h2>
+        <p id="modal-total" class="modal-total"></p>
+        <p id="modal-forma" class="info"></p>
+        <button id="btn-modal-ok" class="primario">Nova venda</button>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='venda.js') }}"></script>
+{% endblock %}

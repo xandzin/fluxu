@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Relatórios — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Relatórios</h1>
+
+<form class="card filtro" method="get">
+    <div>
+        <label for="data_ini">De</label>
+        <input id="data_ini" name="data_ini" type="date" value="{{ data_ini }}">
+    </div>
+    <div>
+        <label for="data_fim">Até</label>
+        <input id="data_fim" name="data_fim" type="date" value="{{ data_fim }}">
+    </div>
+    <button type="submit" class="primario">Filtrar</button>
+    <a href="{{ url_for('relatorios') }}" class="secundario botao-link">Hoje</a>
+</form>
+
+<section class="card">
+    <h2>Resumo do período</h2>
+    <div class="total-linha">
+        <span>Total vendido</span>
+        <span>R$ {{ "%.2f"|format(resumo.total) }}</span>
+    </div>
+    <p class="info">
+        {{ resumo.lancamentos }} lançamento(s) · {{ resumo.itens }} item(ns) vendido(s) no total.
+    </p>
+    <p class="info">
+        Compras no período: {{ compras_periodo.lancamentos }} lançamento(s), R$ {{ "%.2f"|format(compras_periodo.total) }} gastos.
+    </p>
+</section>
+
+<section class="card">
+    <h2>Por forma de pagamento</h2>
+    <table class="tabela-historico">
+        <thead><tr><th>Forma</th><th>Lançamentos</th><th>Itens</th><th>Total</th></tr></thead>
+        <tbody>
+            {% for p in por_pagamento %}
+            <tr>
+                <td>{{ p.forma }}</td>
+                <td>{{ p.lancamentos }}</td>
+                <td>{{ p.itens }}</td>
+                <td>R$ {{ "%.2f"|format(p.total) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="info">Nenhuma venda no período.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Produtos mais vendidos (top 20 por valor)</h2>
+    <table class="tabela-historico">
+        <thead><tr><th>Produto</th><th>Qtd vendida</th><th>Total</th></tr></thead>
+        <tbody>
+            {% for m in mais_vendidos %}
+            <tr>
+                <td>{{ m.produto }}</td>
+                <td>{{ m.qtd }}</td>
+                <td>R$ {{ "%.2f"|format(m.total) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="info">Nenhuma venda no período.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

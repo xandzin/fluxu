@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block titulo %}Compras — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Lançar compra</h1>
+
+<section class="card">
+    <h2>Dados desta leva</h2>
+    <p class="info">Preenche uma vez só — vale pra todos os itens que você lançar em seguida. Só troque quando
+        começar a lançar produtos de outro fornecedor/entrega.</p>
+    <div class="grade-2">
+        <div class="campo">
+            <label for="fornecedor">Fornecedor</label>
+            <input id="fornecedor" type="text">
+        </div>
+        <div class="campo">
+            <label for="nota_fiscal">NF/Cupom nº (opcional)</label>
+            <input id="nota_fiscal" type="text">
+        </div>
+    </div>
+    <div class="campo">
+        <label for="data_compra">Data</label>
+        <input id="data_compra" type="date" value="{{ hoje }}">
+    </div>
+    <button id="btn-nova-leva" class="secundario" type="button">Nova leva (limpar fornecedor/NF)</button>
+</section>
+
+<section class="card">
+    <label for="busca">SKU/EAN ou nome do produto</label>
+    <input id="busca" type="text" autocomplete="off" autofocus
+           placeholder="Digite ou passe o leitor de código de barras...">
+    <ul id="resultados" class="lista-resultados hidden"></ul>
+</section>
+
+<section id="painel-item" class="card hidden">
+    <h2 id="item-descricao"></h2>
+    <p id="item-info" class="info"></p>
+    <div class="grade-2">
+        <div class="campo">
+            <label for="quantidade">Quantidade recebida</label>
+            <input id="quantidade" type="number" step="any" min="0.0001" value="1">
+        </div>
+        <div class="campo">
+            <label for="custo">Custo unitário (R$)</label>
+            <input id="custo" type="number" step="0.01" min="0">
+        </div>
+    </div>
+    <div class="botoes">
+        <button id="btn-confirmar" class="primario">Registrar entrada</button>
+        <button id="btn-cancelar" class="secundario">Cancelar</button>
+    </div>
+    <p id="item-aviso" class="aviso hidden"></p>
+</section>
+
+<section class="card">
+    <h2>Últimas compras lançadas</h2>
+    <table class="tabela-historico">
+        <thead>
+            <tr><th>Data</th><th>Produto</th><th>Fornecedor</th><th>Qtd</th><th>Custo</th><th>NF</th></tr>
+        </thead>
+        <tbody id="historico-corpo">
+            {% for c in historico %}
+            <tr>
+                <td>{{ c.data_compra }}</td>
+                <td>{{ c.descricao }}</td>
+                <td>{{ c.fornecedor or "—" }}</td>
+                <td>{{ c.quantidade }}</td>
+                <td>R$ {{ "%.2f"|format(c.custo_unitario) if c.custo_unitario is not none else "0.00" }}</td>
+                <td>{{ c.nota_fiscal or "—" }}</td>
+            </tr>
+            {% else %}
+            <tr id="historico-vazio"><td colspan="6" class="info">Nenhuma compra lançada ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script src="{{ url_for('static', filename='compras.js') }}"></script>
+{% endblock %}

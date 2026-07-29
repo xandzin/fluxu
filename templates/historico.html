@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Histórico — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Histórico de lançamentos</h1>
+<p class="info">
+    Corrija ou exclua um lançamento errado aqui. Editar ou excluir ajusta o saldo do
+    estoque automaticamente pra não ficar desacertado.
+</p>
+
+<section class="card">
+    <h2>Vendas recentes</h2>
+    <table class="tabela-historico">
+        <thead><tr><th>Data</th><th>Produto</th><th>Qtd</th><th>Total</th><th>Pagamento</th><th></th></tr></thead>
+        <tbody>
+            {% for v in vendas %}
+            <tr>
+                <td>{{ v.data_venda }}</td>
+                <td>{{ v.produto_nome_raw }}</td>
+                <td>{{ v.quantidade }}</td>
+                <td>R$ {{ "%.2f"|format(v.valor_total) }}</td>
+                <td>{{ v.forma_pagamento or "—" }}</td>
+                <td class="acoes">
+                    <a href="{{ url_for('venda_editar', venda_id=v.id) }}">editar</a>
+                    <form method="post" action="{{ url_for('venda_excluir', venda_id=v.id) }}" class="form-inline"
+                          onsubmit="return confirm('Excluir esta venda de {{ v.quantidade }}x {{ v.produto_nome_raw|e }}? Isso devolve a quantidade ao estoque, se o item tiver saldo controlado.');">
+                        <button type="submit" class="link-perigo">excluir</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="info">Nenhuma venda registrada ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Compras recentes</h2>
+    <table class="tabela-historico">
+        <thead><tr><th>Data</th><th>Produto</th><th>Fornecedor</th><th>Qtd</th><th>Custo</th><th>NF</th><th></th></tr></thead>
+        <tbody>
+            {% for c in compras %}
+            <tr>
+                <td>{{ c.data_compra }}</td>
+                <td>{{ c.descricao or c.sku_ean }}</td>
+                <td>{{ c.fornecedor or "—" }}</td>
+                <td>{{ c.quantidade }}</td>
+                <td>R$ {{ "%.2f"|format(c.custo_unitario) if c.custo_unitario is not none else "0.00" }}</td>
+                <td>{{ c.nota_fiscal or "—" }}</td>
+                <td class="acoes">
+                    <a href="{{ url_for('compra_editar', compra_id=c.id) }}">editar</a>
+                    <form method="post" action="{{ url_for('compra_excluir', compra_id=c.id) }}" class="form-inline"
+                          onsubmit="return confirm('Excluir esta compra de {{ c.quantidade }}x {{ (c.descricao or c.sku_ean)|e }}? Isso remove a quantidade do estoque.');">
+                        <button type="submit" class="link-perigo">excluir</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="info">Nenhuma compra registrada ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

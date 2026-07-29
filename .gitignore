@@ -1,0 +1,8 @@
+# Dados de produção — nunca versionar (cada PC tem os seus)
+estoque.db
+secret_key.txt
+backups/
+
+# Python
+__pycache__/
+*.pyc

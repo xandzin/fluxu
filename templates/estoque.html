@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block titulo %}Estoque — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Consultar estoque</h1>
+
+<form class="card filtro" method="get">
+    <div>
+        <label for="busca">Nome do produto</label>
+        <input id="busca" name="busca" type="text" value="{{ busca }}" placeholder="Ex: coca, biscoito, marlboro...">
+    </div>
+    <div>
+        <label for="categoria">Categoria</label>
+        <select id="categoria" name="categoria">
+            <option value="">Todas</option>
+            {% for c in categorias %}
+            <option value="{{ c }}" {% if c == categoria_sel %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <label class="checkbox-linha">
+        <input type="checkbox" name="sem_preco" value="1" {% if sem_preco %}checked{% endif %}>
+        Só sem preço cadastrado
+    </label>
+    <button type="submit" class="primario">Filtrar</button>
+    <a href="{{ url_for('estoque') }}" class="secundario botao-link">Limpar</a>
+    <a href="{{ url_for('produto_novo') }}" class="primario botao-link">+ Novo produto</a>
+</form>
+
+<p class="info">
+    {{ total }} item(ns) encontrado(s){% if total > limite %}, mostrando os primeiros {{ limite }} — refine a busca{% endif %}.
+</p>
+
+<section class="card">
+    <h2>Valor em estoque por categoria</h2>
+    <p class="info">
+        Só soma item que já tem saldo contado <strong>e</strong> custo/preço cadastrado — com o inventário
+        incompleto, esses totais ainda são parciais.
+    </p>
+    <table class="tabela-historico">
+        <thead><tr><th>Categoria</th><th>Itens</th><th>Qtd em estoque</th><th>Valor (custo)</th><th>Valor (venda)</th></tr></thead>
+        <tbody>
+            {% for c in totais_categoria %}
+            <tr>
+                <td>{{ c.categoria or "Sem categoria" }}</td>
+                <td>{{ c.itens }}</td>
+                <td>{{ c.qtd_total|round(2) }}</td>
+                <td>R$ {{ "%.2f"|format(c.valor_custo) }}</td>
+                <td>R$ {{ "%.2f"|format(c.valor_venda) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="info">Nenhum item encontrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="total-linha">
+        <span>Total geral (custo / venda)</span>
+        <span>R$ {{ "%.2f"|format(total_geral.valor_custo) }} / R$ {{ "%.2f"|format(total_geral.valor_venda) }}</span>
+    </div>
+</section>
+
+<table class="tabela-estoque">
+    <thead>
+        <tr>
+            <th>SKU/EAN</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Custo</th>
+            <th>Preço</th>
+            <th>Saldo</th>
+            <th>Validade</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in itens %}
+        <tr class="{{ 'saldo-baixo' if item.saldo_atual is not none and item.saldo_atual <= 0 }}">
+            <td>{{ item.sku_ean }}</td>
+            <td>{{ item.descricao }}</td>
+            <td>{{ item.categoria or "—" }}</td>
+            <td>{{ "R$ %.2f"|format(item.custo_unitario) if item.custo_unitario is not none else "—" }}</td>
+            <td>{{ "R$ %.2f"|format(item.preco_venda) if item.preco_venda is not none else "—" }}</td>
+            <td>{{ item.saldo_atual if item.saldo_atual is not none else "sem contagem" }}</td>
+            <td>{{ item.validade or "—" }}</td>
+            <td><a href="{{ url_for('produto_editar', sku=item.sku_ean) }}">editar</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="info">Nenhum item encontrado.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

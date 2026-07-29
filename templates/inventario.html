@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}Inventário — Conveniência{% endblock %}
+{% block conteudo %}
+<h1>Inventário</h1>
+<p class="info">
+    Conte o item fisicamente e digite a quantidade encontrada — isso <strong>substitui</strong> o saldo
+    cadastrado (não soma nem subtrai). Escaneie o código de barras ou navegue por categoria pra ir
+    passando pelos produtos de uma prateleira.
+</p>
+
+<section class="card">
+    <div class="grade-2">
+        <div class="campo">
+            <label for="busca">SKU/EAN ou nome do produto</label>
+            <input id="busca" type="text" autocomplete="off" autofocus
+                   placeholder="Digite ou passe o leitor de código de barras...">
+        </div>
+        <div class="campo">
+            <label for="categoria">Ou navegue por categoria</label>
+            <select id="categoria">
+                <option value="">Selecione uma categoria...</option>
+                {% for c in categorias %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <ul id="resultados" class="lista-resultados hidden"></ul>
+</section>
+
+<section id="painel-item" class="card hidden">
+    <h2 id="item-descricao"></h2>
+    <p id="item-info" class="info"></p>
+    <div class="campo">
+        <label for="saldo_contado">Quantidade contada agora</label>
+        <input id="saldo_contado" type="number" step="any" min="0" autocomplete="off">
+    </div>
+    <div class="botoes">
+        <button id="btn-confirmar" class="primario">Salvar contagem</button>
+        <button id="btn-cancelar" class="secundario">Cancelar</button>
+    </div>
+    <p id="item-aviso" class="aviso hidden"></p>
+</section>
+
+<section class="card">
+    <div class="cabecalho-secao">
+        <h2>Contados nesta sessão</h2>
+        <button id="btn-limpar-sessao" class="secundario">Limpar lista</button>
+    </div>
+    <table id="tabela-sessao">
+        <thead>
+            <tr><th>Produto</th><th>Saldo anterior</th><th>Contado</th><th>Diferença</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p id="sem-itens" class="info">Nenhum item contado ainda nesta sessão.</p>
+</section>
+
+<script src="{{ url_for('static', filename='inventario.js') }}"></script>
+{% endblock %}
