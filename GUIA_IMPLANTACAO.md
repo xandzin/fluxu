@@ -163,6 +163,59 @@ Pra trocar a senha depois, é em **Dashboard → Trocar senha do sistema**
 - [ ] Equipe sabe onde fica o atalho/endereço pra abrir o sistema, a senha,
       e como abrir/fechar caixa (ver `GUIA_OPERADOR.md`).
 
+## 8. Atualizações futuras (via Git)
+
+O código do sistema agora vive num repositório Git. Isso separa **código**
+(o que muda quando eu implemento algo novo) de **dados de produção**
+(`estoque.db`, `secret_key.txt`, `backups\`) — essas três coisas estão no
+`.gitignore` e nunca são tocadas por uma atualização.
+
+### Instalação inicial no PC da loja (uma vez só)
+
+1. Instale o Git no PC da loja (mesmo processo do Python: baixe em
+   [git-scm.com](https://git-scm.com/downloads), instale com as opções
+   padrão).
+2. No lugar de copiar a pasta manualmente, clone o repositório:
+   ```
+   git clone <URL-do-repositorio> C:\sistema-conveniencia
+   ```
+3. Como o `estoque.db` e o `secret_key.txt` não vêm no repositório (de
+   propósito), na primeira vez que rodar `iniciar_servidor.bat` o sistema
+   cria um banco novo vazio (só a estrutura, sem produtos) e vai pedir pra
+   definir a senha. **Nesse caso**, ainda é preciso copiar o `estoque.db`
+   real (com os 915 produtos) por USB/rede separadamente, uma vez, por cima
+   do banco vazio que foi criado — depois disso o Git nunca mais encosta
+   nele.
+
+### Lançando uma atualização (toda vez que eu mudar algo)
+
+No PC de desenvolvimento, depois de qualquer mudança, o código é commitado e
+enviado (`git push`) pro repositório remoto.
+
+No PC da loja, pra buscar a atualização:
+
+1. Feche o sistema (feche a janela preta do `iniciar_servidor.bat`, ou pare
+   o processo).
+2. Abra um terminal na pasta `C:\sistema-conveniencia` e rode:
+   ```
+   git pull
+   ```
+   Isso baixa e aplica só os arquivos de código que mudaram — o
+   `estoque.db` fica intocado porque está fora do controle do Git.
+3. Se alguma mudança precisar de uma biblioteca nova, rode `pip install
+   flask` de novo (eu aviso quando isso for necessário).
+4. Abra o `iniciar_servidor.bat` de novo. Se a atualização mudou a estrutura
+   do banco (uma tabela ou coluna nova), o próprio sistema ajusta isso
+   sozinho na hora que liga, sem apagar nada — é a mesma lógica segura que já usamos até aqui.
+
+**Antes de qualquer atualização importante, vale rodar `backup_diario.py`
+manualmente** (ou copiar `estoque.db` pra um lugar seguro) — é raro dar
+problema, mas é grátis se garantir.
+
+**Recomendado:** peça pra eu te passar um `atualizar.bat` simples que faz o
+`git pull` com um clique, quando for usar isso no dia a dia — assim ninguém
+precisa abrir terminal na loja.
+
 ## Limitações que você decidiu aceitar por enquanto (revisitar quando fizer
 ## sentido)
 
