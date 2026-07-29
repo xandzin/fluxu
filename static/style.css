@@ -1,23 +1,25 @@
 :root {
-    --bg: #f4f5f7;
-    --card: #ffffff;
-    --texto: #1f2430;
-    --muted: #6b7280;
-    --borda: #e2e5ea;
+    --bg: #0B0D10;
+    --card: #14171C;
+    --card-borda: #1F242B;
     --primaria: #0F6E56;
     --primaria-escura: #085041;
     --acento: #D85A30;
     --acento-escura: #B84424;
+    --texto: #EDEEF0;
+    --muted: #8A919C;
     --erro: #dc2626;
-    --aviso-bg: #FAEEDA;
-    --aviso-texto: #854F0B;
+    --aviso-bg: #3B2A0C;
+    --aviso-texto: #FBBF24;
+    --linha-corte: repeating-linear-gradient(90deg, #2A3037 0 6px, transparent 6px 12px);
+    --fonte-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
 }
 
 * { box-sizing: border-box; }
 
 body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     background: var(--bg);
     color: var(--texto);
 }
@@ -28,9 +30,9 @@ body {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem 1rem;
-    padding: 1rem 1.5rem;
+    padding: 1.1rem 2rem;
     background: var(--card);
-    border-bottom: 1px solid var(--borda);
+    border-bottom: 1px solid var(--card-borda);
 }
 
 .marca-bloco { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
@@ -41,7 +43,7 @@ body {
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: var(--primaria);
+    background: var(--acento);
     display: inline-block;
 }
 
@@ -66,40 +68,76 @@ body {
 
 .topo nav a:hover { color: var(--primaria); }
 
+/* Login — tela dividida: marca de um lado, formulario do outro */
 .tela-login {
     min-height: 100vh;
     display: flex;
+}
+
+.login-lado-marca {
+    flex: 0 0 58%;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 2.5rem;
+    background-color: var(--primaria-escura);
+    background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 18px);
+}
+
+.login-marca-conteudo .marca {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: white;
+}
+.login-marca-conteudo .marca-ponto { width: 13px; height: 13px; }
+.login-marca-conteudo .marca-tagline {
+    display: block;
+    margin-top: 0.6rem;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.login-lado-form {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    background: var(--bg);
 }
 
 .login-card {
     width: 100%;
-    max-width: 340px;
+    max-width: 320px;
 }
 
 .login-card h1 {
     font-size: 1.3rem;
-    margin: 0 0 1rem;
-    text-align: center;
+    margin: 0 0 1.25rem;
+    text-align: left;
+}
+
+@media (max-width: 760px) {
+    .tela-login { flex-direction: column; }
+    .login-lado-marca { flex: 0 0 auto; padding: 3rem 1.5rem; }
+    .login-marca-conteudo { text-align: center; }
 }
 
 main {
-    max-width: 720px;
-    margin: 1.5rem auto;
-    padding: 0 1rem 3rem;
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
 }
 
-h1 { font-size: 1.4rem; margin-bottom: 1rem; }
+h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 1.5rem; }
 h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 
 .card {
     background: var(--card);
-    border: 1px solid var(--borda);
+    border: 1px solid var(--card-borda);
     border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 label {
@@ -109,10 +147,10 @@ label {
     margin-bottom: 0.3rem;
 }
 
-input[type="text"], input[type="number"], select {
+input[type="text"], input[type="number"], input[type="password"], select {
     width: 100%;
     padding: 0.6rem 0.7rem;
-    border: 1px solid var(--borda);
+    border: 1px solid var(--card-borda);
     border-radius: 8px;
     font-size: 1rem;
     background: var(--bg);
@@ -122,6 +160,12 @@ input[type="text"], input[type="number"], select {
 input:focus, select:focus {
     outline: 2px solid var(--primaria);
     outline-offset: 1px;
+}
+
+/* Numeros, precos, SKU/codigo de barras — fonte de caixa registradora */
+.mono {
+    font-family: var(--fonte-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .linha {
@@ -150,14 +194,14 @@ button, .botao-link {
 .acento { background: var(--acento); color: white; }
 .acento:hover { background: var(--acento-escura); }
 
-.secundario { background: var(--bg); color: var(--texto); border-color: var(--borda); }
-.secundario:hover { background: #e9ebef; }
+.secundario { background: var(--bg); color: var(--texto); border-color: var(--card-borda); }
+.secundario:hover { background: #1c212a; }
 
 .lista-resultados {
     list-style: none;
     margin: 0.75rem 0 0;
     padding: 0;
-    border: 1px solid var(--borda);
+    border: 1px solid var(--card-borda);
     border-radius: 8px;
     max-height: 320px;
     overflow-y: auto;
@@ -166,20 +210,46 @@ button, .botao-link {
 .lista-resultados li {
     padding: 0.6rem 0.75rem;
     cursor: pointer;
-    border-bottom: 1px solid var(--borda);
+    border-bottom: 1px solid var(--card-borda);
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
 }
 .lista-resultados li:last-child { border-bottom: none; }
 .lista-resultados li:hover { background: var(--bg); }
-.lista-resultados .detalhe { font-size: 0.8rem; color: var(--muted); }
+.lista-resultados .detalhe { font-size: 0.8rem; color: var(--muted); font-family: var(--fonte-mono); }
 .lista-resultados li.vazio { cursor: default; color: var(--muted); font-style: italic; }
 .lista-resultados li.vazio:hover { background: none; }
 
 .hidden { display: none !important; }
 
 .info { color: var(--muted); font-size: 0.9rem; }
+
+/* Estado vazio — nunca so texto solto, sempre com um marcador visual */
+.estado-vazio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 1.75rem 0;
+    margin: 0;
+    text-align: center;
+}
+.estado-vazio-icone {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border: 1px dashed var(--card-borda);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--muted);
+}
 
 .aviso {
     margin-top: 0.75rem;
@@ -189,8 +259,8 @@ button, .botao-link {
     border-radius: 8px;
     font-size: 0.9rem;
 }
-.aviso.erro { background: #fef2f2; color: var(--erro); }
-.aviso.ok { background: #f0fdf4; color: #15803d; }
+.aviso.erro { background: #2b1414; color: #f87171; }
+.aviso.ok { background: #0f2b1a; color: #4ade80; }
 
 table {
     width: 100%;
@@ -200,7 +270,7 @@ table {
 table th, table td {
     text-align: left;
     padding: 0.5rem 0.4rem;
-    border-bottom: 1px solid var(--borda);
+    border-bottom: 1px solid var(--card-borda);
 }
 table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
 
@@ -213,7 +283,7 @@ table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
     font-size: 1.1rem;
     margin: 1rem 0;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--borda);
+    border-top: 1px solid var(--card-borda);
 }
 
 .filtro { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; }
@@ -256,7 +326,7 @@ table.tabela-historico { width: 100%; }
 .modal-fundo {
     position: fixed;
     inset: 0;
-    background: rgba(15, 18, 25, 0.55);
+    background: rgba(0, 0, 0, 0.65);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -266,12 +336,12 @@ table.tabela-historico { width: 100%; }
 
 .modal-caixa {
     background: var(--card);
+    border: 1px solid var(--card-borda);
     border-radius: 14px;
     padding: 2rem;
     text-align: center;
     max-width: 320px;
     width: 100%;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
 }
 
 .modal-check {
@@ -290,7 +360,7 @@ table.tabela-historico { width: 100%; }
 .modal-total {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #16a34a;
+    color: #4ade80;
     margin: 0.25rem 0 0.5rem;
 }
 
@@ -307,22 +377,45 @@ table.tabela-historico { width: 100%; }
 }
 .cabecalho-secao h2 { margin: 0; }
 
-.tabela-estoque { background: var(--card); border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
+.tabela-estoque { background: var(--card); border: 1px solid var(--card-borda); border-radius: 10px; overflow: hidden; }
 .tabela-estoque thead { background: var(--bg); }
 .tabela-estoque tbody tr:hover { background: var(--bg); }
 .saldo-baixo td { color: var(--erro); }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #14161c;
-        --card: #1c1f27;
-        --texto: #e8e9ec;
-        --muted: #9199a6;
-        --borda: #2a2e38;
-        --aviso-bg: #3B2A0C;
-        --aviso-texto: #FBBF24;
-    }
-    .secundario:hover { background: #262a34; }
-    .aviso.erro { background: #2b1414; color: #f87171; }
-    .aviso.ok { background: #0f2b1a; color: #4ade80; }
+/* Select customizado — remove a aparencia nativa e desenha uma seta simples */
+.select-wrap { position: relative; }
+.select-wrap select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2.25rem;
 }
+.select-wrap::after {
+    content: "";
+    position: absolute;
+    right: 0.95rem;
+    top: 45%;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: translateY(-50%) rotate(45deg);
+    pointer-events: none;
+}
+
+/* Cartao "cupom" — elemento de assinatura visual do sistema, usado no
+   carrinho de venda: uma linha picotada no topo e na base, como um recibo. */
+.cartao-cupom {
+    position: relative;
+}
+.cartao-cupom::before,
+.cartao-cupom::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--linha-corte);
+}
+.cartao-cupom::before { top: 0; }
+.cartao-cupom::after { bottom: 0; }

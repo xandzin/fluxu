@@ -7,28 +7,36 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <main class="tela-login">
-        <form class="card login-card" method="post">
-            <h1 class="marca"><span class="marca-ponto"></span>fluxu</h1>
-            {% if primeiro_acesso %}
-            <p class="info">Primeiro acesso — defina a senha do sistema. Essa senha é única e compartilhada por
-                toda a equipe.</p>
-            {% endif %}
-            {% if erro %}
-            <p class="aviso erro">{{ erro }}</p>
-            {% endif %}
-            <div class="campo">
-                <label for="senha">{{ "Nova senha" if primeiro_acesso else "Senha" }}</label>
-                <input id="senha" name="senha" type="password" autofocus required>
+    <div class="tela-login">
+        <div class="login-lado-marca">
+            <div class="login-marca-conteudo">
+                <span class="marca"><span class="marca-ponto"></span>fluxu</span>
+                <span class="marca-tagline">seu ponto de venda, sem atrito</span>
             </div>
-            {% if primeiro_acesso %}
-            <div class="campo">
-                <label for="confirmar">Confirme a senha</label>
-                <input id="confirmar" name="confirmar" type="password" required>
-            </div>
-            {% endif %}
-            <button type="submit" class="primario">{{ "Definir senha e entrar" if primeiro_acesso else "Entrar" }}</button>
-        </form>
-    </main>
+        </div>
+        <div class="login-lado-form">
+            <form class="login-card" method="post">
+                <h1>{{ "Definir senha" if primeiro_acesso else "Entrar" }}</h1>
+                {% if primeiro_acesso %}
+                <p class="info">Primeiro acesso — defina a senha do sistema. Essa senha é única e compartilhada por
+                    toda a equipe.</p>
+                {% endif %}
+                {% if erro %}
+                <p class="aviso erro">{{ erro }}</p>
+                {% endif %}
+                <div class="campo">
+                    <label for="senha">{{ "Nova senha" if primeiro_acesso else "Senha" }}</label>
+                    <input id="senha" name="senha" type="password" autofocus required>
+                </div>
+                {% if primeiro_acesso %}
+                <div class="campo">
+                    <label for="confirmar">Confirme a senha</label>
+                    <input id="confirmar" name="confirmar" type="password" required>
+                </div>
+                {% endif %}
+                <button type="submit" class="primario">{{ "Definir senha e entrar" if primeiro_acesso else "Entrar" }}</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

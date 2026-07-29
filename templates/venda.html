@@ -12,7 +12,7 @@
 
 <section id="painel-item" class="card hidden">
     <h2 id="item-descricao"></h2>
-    <p id="item-info" class="info"></p>
+    <p id="item-info" class="info mono"></p>
     <div class="linha">
         <div>
             <label for="quantidade">Quantidade</label>
@@ -30,7 +30,7 @@
     <p id="item-aviso" class="aviso hidden"></p>
 </section>
 
-<section class="card">
+<section class="card cartao-cupom">
     <h2>Venda atual</h2>
     <table id="tabela-carrinho">
         <thead>
@@ -38,20 +38,25 @@
         </thead>
         <tbody></tbody>
     </table>
-    <p id="sem-itens" class="info">Nenhum item registrado ainda.</p>
+    <p id="sem-itens" class="estado-vazio">
+        <span class="estado-vazio-icone">+</span>
+        Nenhum item registrado ainda.
+    </p>
     <div class="total-linha">
         <span>Total</span>
-        <span id="total-venda">R$ 0,00</span>
+        <span id="total-venda" class="mono">R$ 0,00</span>
     </div>
 
     <div class="campo">
         <label for="forma-pagamento">Forma de pagamento</label>
-        <select id="forma-pagamento">
-            <option value="">Selecione...</option>
-            {% for f in formas_pagamento %}
-            <option value="{{ f }}">{{ f }}</option>
-            {% endfor %}
-        </select>
+        <div class="select-wrap">
+            <select id="forma-pagamento">
+                <option value="">Selecione...</option>
+                {% for f in formas_pagamento %}
+                <option value="{{ f }}">{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
     <p id="finalizar-aviso" class="aviso erro hidden"></p>
 
@@ -64,7 +69,7 @@
     <div class="modal-caixa">
         <div class="modal-check">✓</div>
         <h2>Venda finalizada</h2>
-        <p id="modal-total" class="modal-total"></p>
+        <p id="modal-total" class="modal-total mono"></p>
         <p id="modal-forma" class="info"></p>
         <div class="botoes-modal">
             <button id="btn-imprimir-comprovante" class="secundario">Imprimir comprovante</button>

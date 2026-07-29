@@ -155,9 +155,9 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${escapeHtml(item.descricao)}</td>
-            <td>${item.quantidade}</td>
-            <td>${formatarReal(item.preco)}</td>
-            <td>${formatarReal(item.valor_total)}</td>
+            <td class="mono">${item.quantidade}</td>
+            <td class="mono">${formatarReal(item.preco)}</td>
+            <td class="mono">${formatarReal(item.valor_total)}</td>
         `;
         tabelaCorpo.appendChild(tr);
         totalAtual += item.valor_total;
