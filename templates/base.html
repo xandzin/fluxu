@@ -3,12 +3,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block titulo %}Conveniência{% endblock %}</title>
+    <title>{% block titulo %}{% endblock %} — fluxu</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="topo">
-        <span class="marca">Conveniência</span>
+        <div class="marca-bloco">
+            <span class="marca"><span class="marca-ponto"></span>fluxu</span>
+            <span class="marca-tagline">seu ponto de venda, sem atrito</span>
+        </div>
         <nav>
             <a href="{{ url_for('venda') }}">Venda</a>
             <a href="{{ url_for('compras') }}">Compras</a>

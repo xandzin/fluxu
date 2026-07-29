@@ -4,11 +4,13 @@
     --texto: #1f2430;
     --muted: #6b7280;
     --borda: #e2e5ea;
-    --primaria: #2563eb;
-    --primaria-escura: #1d4ed8;
+    --primaria: #0F6E56;
+    --primaria-escura: #085041;
+    --acento: #D85A30;
+    --acento-escura: #B84424;
     --erro: #dc2626;
-    --aviso-bg: #fff7ed;
-    --aviso-texto: #9a3412;
+    --aviso-bg: #FAEEDA;
+    --aviso-texto: #854F0B;
 }
 
 * { box-sizing: border-box; }
@@ -31,7 +33,23 @@ body {
     border-bottom: 1px solid var(--borda);
 }
 
-.marca { font-weight: 700; font-size: 1.1rem; }
+.marca-bloco { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+
+.marca { font-weight: 600; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+
+.marca-ponto {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--primaria);
+    display: inline-block;
+}
+
+.marca-tagline { font-size: 0.78rem; color: var(--muted); }
+
+@media (max-width: 560px) {
+    .marca-tagline { display: none; }
+}
 
 .topo nav {
     display: flex;
@@ -128,6 +146,9 @@ button, .botao-link {
 
 .primario { background: var(--primaria); color: white; }
 .primario:hover { background: var(--primaria-escura); }
+
+.acento { background: var(--acento); color: white; }
+.acento:hover { background: var(--acento-escura); }
 
 .secundario { background: var(--bg); color: var(--texto); border-color: var(--borda); }
 .secundario:hover { background: #e9ebef; }
@@ -298,8 +319,8 @@ table.tabela-historico { width: 100%; }
         --texto: #e8e9ec;
         --muted: #9199a6;
         --borda: #2a2e38;
-        --aviso-bg: #2b1d0f;
-        --aviso-texto: #fb923c;
+        --aviso-bg: #3B2A0C;
+        --aviso-texto: #FBBF24;
     }
     .secundario:hover { background: #262a34; }
     .aviso.erro { background: #2b1414; color: #f87171; }
