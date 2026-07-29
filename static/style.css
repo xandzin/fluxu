@@ -275,6 +275,9 @@ table.tabela-historico { width: 100%; }
 
 .modal-caixa button { width: 100%; margin-top: 1rem; }
 
+.botoes-modal { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.botoes-modal button { margin-top: 0; }
+
 .cabecalho-secao {
     display: flex;
     align-items: center;

@@ -274,7 +274,8 @@ def venda():
         if obter_caixa_aberto(conn) is None:
             flash("Abra o caixa antes de registrar vendas.", "erro")
             return redirect(url_for("caixa"))
-        return render_template("venda.html", formas_pagamento=FORMAS_PAGAMENTO)
+        nome_loja = obter_config(conn, "nome_loja") or ""
+        return render_template("venda.html", formas_pagamento=FORMAS_PAGAMENTO, nome_loja=nome_loja)
     finally:
         conn.close()
 
@@ -1014,11 +1015,26 @@ def dashboard():
                 ultimo_backup = sorted(arquivos)[-1]
 
         tamanho_banco_mb = round(os.path.getsize(DB_PATH) / (1024 * 1024), 2) if os.path.exists(DB_PATH) else 0
+        nome_loja = obter_config(conn, "nome_loja") or ""
 
         return render_template(
             "dashboard.html", stats=stats, ultimo_backup=ultimo_backup,
             tamanho_banco_mb=tamanho_banco_mb, frase_confirmacao=FRASE_CONFIRMACAO_ZERAR,
+            nome_loja=nome_loja,
         )
+    finally:
+        conn.close()
+
+
+@app.route("/dashboard/loja", methods=["POST"])
+def dashboard_loja():
+    conn = get_conn()
+    try:
+        nome_loja = request.form.get("nome_loja", "").strip()
+        definir_config(conn, "nome_loja", nome_loja)
+        conn.commit()
+        flash("Nome da loja atualizado.", "ok")
+        return redirect(url_for("dashboard"))
     finally:
         conn.close()
 

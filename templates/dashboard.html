@@ -19,6 +19,22 @@
 </section>
 
 <section class="card">
+    <h2>Nome da loja (comprovante impresso)</h2>
+    <p class="info">Aparece no topo do comprovante que o operador pode imprimir ao finalizar
+        uma venda. Deixe em branco pra não mostrar nenhum cabeçalho.</p>
+    <form method="post" action="{{ url_for('dashboard_loja') }}">
+        <div class="campo">
+            <label for="nome_loja">Nome/endereço/telefone (aparece exatamente como digitado)</label>
+            <input id="nome_loja" name="nome_loja" type="text" value="{{ nome_loja }}"
+                   placeholder="Ex: Posto Exemplo — Rua Tal, 123">
+        </div>
+        <div class="botoes">
+            <button type="submit" class="secundario">Salvar</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
     <h2>Trocar senha do sistema</h2>
     <form method="post" action="{{ url_for('dashboard_senha') }}">
         <div class="campo">

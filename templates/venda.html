@@ -66,9 +66,13 @@
         <h2>Venda finalizada</h2>
         <p id="modal-total" class="modal-total"></p>
         <p id="modal-forma" class="info"></p>
-        <button id="btn-modal-ok" class="primario">Nova venda</button>
+        <div class="botoes-modal">
+            <button id="btn-imprimir-comprovante" class="secundario">Imprimir comprovante</button>
+            <button id="btn-modal-ok" class="primario">Nova venda</button>
+        </div>
     </div>
 </div>
 
+<script>window.NOME_LOJA = {{ nome_loja|tojson }};</script>
 <script src="{{ url_for('static', filename='venda.js') }}"></script>
 {% endblock %}

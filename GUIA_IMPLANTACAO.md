@@ -147,7 +147,21 @@ Depois disso, todo mundo usa essa mesma senha pra entrar.
 Pra trocar a senha depois, é em **Dashboard → Trocar senha do sistema**
 (precisa saber a senha atual).
 
-## 7. Antes de abrir pro pessoal usar — checklist final
+## 7. Comprovante impresso (opcional)
+
+Na tela de Venda, depois de finalizar, o operador tem um botão "Imprimir
+comprovante" (não é cupom fiscal, é só um resumo pro cliente que pedir). Ele
+usa a impressão normal do navegador, formatada pra bobina térmica de 80mm —
+funciona com qualquer impressora térmica de cupom conectada e configurada
+como impressora padrão do Windows nesse PC.
+
+- Se quiser um cabeçalho com nome/endereço/telefone da loja no comprovante,
+  configure em **Dashboard → Nome da loja**.
+- Se não tiver impressora térmica ainda, o botão "Imprimir comprovante"
+  ainda funciona — só que abre a caixa de impressão normal do Windows, que
+  imprime em qualquer impressora disponível (ou pode ser cancelada).
+
+## 8. Antes de abrir pro pessoal usar — checklist final
 
 - [ ] **Data e hora do Windows estão certas** (Configurações → Hora e
       Idioma). O sistema grava a data da venda automaticamente a partir do
@@ -159,11 +173,13 @@ Pra trocar a senha depois, é em **Dashboard → Trocar senha do sistema**
       Venda liberar.
 - [ ] Testou acessar de outro PC/caixa pela rede.
 - [ ] Testou o backup manualmente (passo 5).
+- [ ] Configurou o nome da loja e testou o "Imprimir comprovante" (passo 7),
+      se for usar.
 - [ ] Reiniciou o PC pra confirmar que o auto-início funciona.
 - [ ] Equipe sabe onde fica o atalho/endereço pra abrir o sistema, a senha,
       e como abrir/fechar caixa (ver `GUIA_OPERADOR.md`).
 
-## 8. Atualizações futuras (via Git)
+## 9. Atualizações futuras (via Git)
 
 O código do sistema agora vive num repositório Git. Isso separa **código**
 (o que muda quando eu implemento algo novo) de **dados de produção**

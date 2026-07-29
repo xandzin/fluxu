@@ -40,8 +40,10 @@ caixa separado).
 5. Repita pra cada produto da compra do cliente.
 6. No final, escolha a **forma de pagamento** (PIX, Débito, Crédito ou
    Dinheiro) na parte de baixo da tela e clique em **"Finalizar venda"**.
-7. Aparece um aviso verde confirmando que a venda foi registrada — só
-   depois disso a tela limpa pro próximo cliente.
+7. Aparece um aviso verde confirmando que a venda foi registrada. **Se o
+   cliente pedir um comprovante**, clique em "Imprimir comprovante" antes de
+   fechar o aviso — abre a tela de impressão (não é cupom fiscal, é só um
+   resumo da compra). Depois clique em "Nova venda" pra limpar a tela.
 
 **Atenção:** cada item já é registrado assim que você confirma ele (não
 precisa "salvar" no final) — o botão "Finalizar venda" só marca a forma de
