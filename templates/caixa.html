@@ -15,18 +15,18 @@
             {% for p in resumo_pagamento %}
             <tr>
                 <td>{{ p.forma }}</td>
-                <td>{{ p.lancamentos }}</td>
-                <td>R$ {{ "%.2f"|format(p.total) }}</td>
+                <td class="mono">{{ p.lancamentos }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(p.total) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="3" class="info">Nenhuma venda neste caixa ainda.</td></tr>
+            <tr><td colspan="3"><p class="estado-vazio"><span class="estado-vazio-icone">+</span>Nenhuma venda neste caixa ainda.</p></td></tr>
             {% endfor %}
         </tbody>
     </table>
 
     <div class="total-linha">
         <span>Dinheiro esperado em caixa</span>
-        <span>R$ {{ "%.2f"|format(dinheiro_esperado) }}</span>
+        <span class="mono">R$ {{ "%.2f"|format(dinheiro_esperado) }}</span>
     </div>
     <p class="info">Troco inicial + vendas em Dinheiro. PIX/Débito/Crédito não entram na gaveta física.</p>
 </section>
@@ -36,7 +36,7 @@
     <form method="post" action="{{ url_for('caixa_fechar') }}">
         <div class="campo">
             <label for="valor_fechamento">Valor contado na gaveta (R$)</label>
-            <input id="valor_fechamento" name="valor_fechamento" type="number" step="0.01" min="0" required autofocus>
+            <input id="valor_fechamento" name="valor_fechamento" type="number" step="0.01" min="0" required autofocus class="mono">
         </div>
         <div class="campo">
             <label for="observacoes">Observações (opcional)</label>
@@ -58,7 +58,7 @@
     <form method="post" action="{{ url_for('caixa_abrir') }}">
         <div class="campo">
             <label for="valor_abertura">Troco inicial (R$)</label>
-            <input id="valor_abertura" name="valor_abertura" type="number" step="0.01" min="0" value="0" required autofocus>
+            <input id="valor_abertura" name="valor_abertura" type="number" step="0.01" min="0" value="0" required autofocus class="mono">
         </div>
         <div class="botoes">
             <button type="submit" class="primario">Abrir caixa</button>
@@ -80,10 +80,10 @@
                 <td>{{ c.data }}</td>
                 <td>{{ c.hora_abertura[11:16] }}</td>
                 <td>{{ c.hora_fechamento[11:16] if c.hora_fechamento else "—" }}</td>
-                <td>R$ {{ "%.2f"|format(c.valor_abertura) }}</td>
-                <td>R$ {{ "%.2f"|format(esperado) }}</td>
-                <td>R$ {{ "%.2f"|format(c.valor_fechamento) if c.valor_fechamento is not none else "—" }}</td>
-                <td>{{ "R$ %.2f"|format(diferenca) if c.valor_fechamento is not none else "—" }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_abertura) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(esperado) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_fechamento) if c.valor_fechamento is not none else "—" }}</td>
+                <td class="mono">{{ "R$ %.2f"|format(diferenca) if c.valor_fechamento is not none else "—" }}</td>
             </tr>
             {% endfor %}
         </tbody>

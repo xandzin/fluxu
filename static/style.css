@@ -147,7 +147,7 @@ label {
     margin-bottom: 0.3rem;
 }
 
-input[type="text"], input[type="number"], input[type="password"], select {
+input[type="text"], input[type="number"], input[type="password"], input[type="date"], select {
     width: 100%;
     padding: 0.6rem 0.7rem;
     border: 1px solid var(--card-borda);
@@ -161,6 +161,12 @@ input:focus, select:focus {
     outline: 2px solid var(--primaria);
     outline-offset: 1px;
 }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.7;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
 /* Numeros, precos, SKU/codigo de barras — fonte de caixa registradora */
 .mono {
@@ -300,6 +306,8 @@ table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
 table.tabela-historico { width: 100%; }
 
 .acoes { display: flex; gap: 0.6rem; align-items: center; white-space: nowrap; }
+.acoes a { color: var(--primaria); text-decoration: none; font-size: 0.85rem; }
+.acoes a:hover { text-decoration: underline; }
 .form-inline { display: inline; margin: 0; }
 .link-perigo {
     background: none;

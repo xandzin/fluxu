@@ -20,7 +20,7 @@
     <h2>Resumo do período</h2>
     <div class="total-linha">
         <span>Total vendido</span>
-        <span>R$ {{ "%.2f"|format(resumo.total) }}</span>
+        <span class="mono">R$ {{ "%.2f"|format(resumo.total) }}</span>
     </div>
     <p class="info">
         {{ resumo.lancamentos }} lançamento(s) · {{ resumo.itens }} item(ns) vendido(s) no total.
@@ -38,9 +38,9 @@
             {% for p in por_pagamento %}
             <tr>
                 <td>{{ p.forma }}</td>
-                <td>{{ p.lancamentos }}</td>
-                <td>{{ p.itens }}</td>
-                <td>R$ {{ "%.2f"|format(p.total) }}</td>
+                <td class="mono">{{ p.lancamentos }}</td>
+                <td class="mono">{{ p.itens }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(p.total) }}</td>
             </tr>
             {% else %}
             <tr><td colspan="4" class="info">Nenhuma venda no período.</td></tr>
@@ -57,8 +57,8 @@
             {% for m in mais_vendidos %}
             <tr>
                 <td>{{ m.produto }}</td>
-                <td>{{ m.qtd }}</td>
-                <td>R$ {{ "%.2f"|format(m.total) }}</td>
+                <td class="mono">{{ m.qtd }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(m.total) }}</td>
             </tr>
             {% else %}
             <tr><td colspan="3" class="info">Nenhuma venda no período.</td></tr>

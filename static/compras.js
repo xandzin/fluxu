@@ -158,8 +158,8 @@
             <td>${data}</td>
             <td>${escapeHtml(item.descricao)}</td>
             <td>${escapeHtml(fornecedor || "—")}</td>
-            <td>${item.quantidade}</td>
-            <td>${formatarReal(item.custo_unitario)}</td>
+            <td class="mono">${item.quantidade}</td>
+            <td class="mono">${formatarReal(item.custo_unitario)}</td>
             <td>${escapeHtml(notaFiscal || "—")}</td>
         `;
         historicoCorpo.insertBefore(tr, historicoCorpo.firstChild);

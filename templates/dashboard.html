@@ -11,7 +11,7 @@
             <tr><td>Produtos cadastrados</td><td>{{ stats.produtos }}</td></tr>
             <tr><td>Vendas registradas (histórico total)</td><td>{{ stats.vendas }}</td></tr>
             <tr><td>Compras registradas (histórico total)</td><td>{{ stats.compras }}</td></tr>
-            <tr><td>Faturamento acumulado</td><td>R$ {{ "%.2f"|format(stats.faturamento_total) }}</td></tr>
+            <tr><td>Faturamento acumulado</td><td class="mono">R$ {{ "%.2f"|format(stats.faturamento_total) }}</td></tr>
             <tr><td>Tamanho do banco</td><td>{{ tamanho_banco_mb }} MB</td></tr>
             <tr><td>Último backup encontrado</td><td>{{ ultimo_backup or "nenhum backup encontrado na pasta backups\\" }}</td></tr>
         </tbody>

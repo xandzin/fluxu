@@ -10,12 +10,14 @@
     </div>
     <div>
         <label for="categoria">Categoria</label>
-        <select id="categoria" name="categoria">
-            <option value="">Todas</option>
-            {% for c in categorias %}
-            <option value="{{ c }}" {% if c == categoria_sel %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-        </select>
+        <div class="select-wrap">
+            <select id="categoria" name="categoria">
+                <option value="">Todas</option>
+                {% for c in categorias %}
+                <option value="{{ c }}" {% if c == categoria_sel %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
     <label class="checkbox-linha">
         <input type="checkbox" name="sem_preco" value="1" {% if sem_preco %}checked{% endif %}>
@@ -42,10 +44,10 @@
             {% for c in totais_categoria %}
             <tr>
                 <td>{{ c.categoria or "Sem categoria" }}</td>
-                <td>{{ c.itens }}</td>
-                <td>{{ c.qtd_total|round(2) }}</td>
-                <td>R$ {{ "%.2f"|format(c.valor_custo) }}</td>
-                <td>R$ {{ "%.2f"|format(c.valor_venda) }}</td>
+                <td class="mono">{{ c.itens }}</td>
+                <td class="mono">{{ c.qtd_total|round(2) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_custo) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_venda) }}</td>
             </tr>
             {% else %}
             <tr><td colspan="5" class="info">Nenhum item encontrado.</td></tr>
@@ -54,7 +56,7 @@
     </table>
     <div class="total-linha">
         <span>Total geral (custo / venda)</span>
-        <span>R$ {{ "%.2f"|format(total_geral.valor_custo) }} / R$ {{ "%.2f"|format(total_geral.valor_venda) }}</span>
+        <span class="mono">R$ {{ "%.2f"|format(total_geral.valor_custo) }} / R$ {{ "%.2f"|format(total_geral.valor_venda) }}</span>
     </div>
 </section>
 
@@ -74,12 +76,12 @@
     <tbody>
         {% for item in itens %}
         <tr class="{{ 'saldo-baixo' if item.saldo_atual is not none and item.saldo_atual <= 0 }}">
-            <td>{{ item.sku_ean }}</td>
+            <td class="mono">{{ item.sku_ean }}</td>
             <td>{{ item.descricao }}</td>
             <td>{{ item.categoria or "—" }}</td>
-            <td>{{ "R$ %.2f"|format(item.custo_unitario) if item.custo_unitario is not none else "—" }}</td>
-            <td>{{ "R$ %.2f"|format(item.preco_venda) if item.preco_venda is not none else "—" }}</td>
-            <td>{{ item.saldo_atual if item.saldo_atual is not none else "sem contagem" }}</td>
+            <td class="mono">{{ "R$ %.2f"|format(item.custo_unitario) if item.custo_unitario is not none else "—" }}</td>
+            <td class="mono">{{ "R$ %.2f"|format(item.preco_venda) if item.preco_venda is not none else "—" }}</td>
+            <td class="mono">{{ item.saldo_atual if item.saldo_atual is not none else "sem contagem" }}</td>
             <td>{{ item.validade or "—" }}</td>
             <td><a href="{{ url_for('produto_editar', sku=item.sku_ean) }}">editar</a></td>
         </tr>

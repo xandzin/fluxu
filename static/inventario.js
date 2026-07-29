@@ -147,9 +147,9 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${escapeHtml(item.descricao)}</td>
-            <td>${anterior != null ? formatarNumero(anterior) : "sem contagem"}</td>
-            <td>${formatarNumero(item.saldo_contado)}</td>
-            <td>${diferenca != null ? (diferenca > 0 ? "+" : "") + formatarNumero(diferenca) : "—"}</td>
+            <td class="mono">${anterior != null ? formatarNumero(anterior) : "sem contagem"}</td>
+            <td class="mono">${formatarNumero(item.saldo_contado)}</td>
+            <td class="mono">${diferenca != null ? (diferenca > 0 ? "+" : "") + formatarNumero(diferenca) : "—"}</td>
         `;
         tabelaCorpo.insertBefore(tr, tabelaCorpo.firstChild);
     }

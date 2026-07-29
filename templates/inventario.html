@@ -17,12 +17,14 @@
         </div>
         <div class="campo">
             <label for="categoria">Ou navegue por categoria</label>
-            <select id="categoria">
-                <option value="">Selecione uma categoria...</option>
-                {% for c in categorias %}
-                <option value="{{ c }}">{{ c }}</option>
-                {% endfor %}
-            </select>
+            <div class="select-wrap">
+                <select id="categoria">
+                    <option value="">Selecione uma categoria...</option>
+                    {% for c in categorias %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
     </div>
     <ul id="resultados" class="lista-resultados hidden"></ul>
@@ -30,10 +32,10 @@
 
 <section id="painel-item" class="card hidden">
     <h2 id="item-descricao"></h2>
-    <p id="item-info" class="info"></p>
+    <p id="item-info" class="info mono"></p>
     <div class="campo">
         <label for="saldo_contado">Quantidade contada agora</label>
-        <input id="saldo_contado" type="number" step="any" min="0" autocomplete="off">
+        <input id="saldo_contado" type="number" step="any" min="0" autocomplete="off" class="mono">
     </div>
     <div class="botoes">
         <button id="btn-confirmar" class="primario">Salvar contagem</button>
@@ -53,7 +55,10 @@
         </thead>
         <tbody></tbody>
     </table>
-    <p id="sem-itens" class="info">Nenhum item contado ainda nesta sessão.</p>
+    <p id="sem-itens" class="estado-vazio">
+        <span class="estado-vazio-icone">+</span>
+        Nenhum item contado ainda nesta sessão.
+    </p>
 </section>
 
 <script src="{{ url_for('static', filename='inventario.js') }}"></script>

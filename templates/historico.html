@@ -16,8 +16,8 @@
             <tr>
                 <td>{{ v.data_venda }}</td>
                 <td>{{ v.produto_nome_raw }}</td>
-                <td>{{ v.quantidade }}</td>
-                <td>R$ {{ "%.2f"|format(v.valor_total) }}</td>
+                <td class="mono">{{ v.quantidade }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(v.valor_total) }}</td>
                 <td>{{ v.forma_pagamento or "—" }}</td>
                 <td class="acoes">
                     <a href="{{ url_for('venda_editar', venda_id=v.id) }}">editar</a>
@@ -28,7 +28,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="6" class="info">Nenhuma venda registrada ainda.</td></tr>
+            <tr><td colspan="6"><p class="estado-vazio"><span class="estado-vazio-icone">+</span>Nenhuma venda registrada ainda.</p></td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -44,8 +44,8 @@
                 <td>{{ c.data_compra }}</td>
                 <td>{{ c.descricao or c.sku_ean }}</td>
                 <td>{{ c.fornecedor or "—" }}</td>
-                <td>{{ c.quantidade }}</td>
-                <td>R$ {{ "%.2f"|format(c.custo_unitario) if c.custo_unitario is not none else "0.00" }}</td>
+                <td class="mono">{{ c.quantidade }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.custo_unitario) if c.custo_unitario is not none else "0.00" }}</td>
                 <td>{{ c.nota_fiscal or "—" }}</td>
                 <td class="acoes">
                     <a href="{{ url_for('compra_editar', compra_id=c.id) }}">editar</a>
@@ -56,7 +56,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="7" class="info">Nenhuma compra registrada ainda.</td></tr>
+            <tr><td colspan="7"><p class="estado-vazio"><span class="estado-vazio-icone">+</span>Nenhuma compra registrada ainda.</p></td></tr>
             {% endfor %}
         </tbody>
     </table>
