@@ -1,4 +1,5 @@
 @echo off
+title Sistema Conveniencia - Servidor
 cd /d "%~dp0"
 echo Iniciando o sistema de conveniencia...
 echo Deixe esta janela aberta e minimizada (nao feche) enquanto o sistema estiver em uso.

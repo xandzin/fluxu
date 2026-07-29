@@ -50,9 +50,9 @@ planilhas que só existem no PC de desenvolvimento).
    desligue o alias do `python.exe`/`python3.exe`. Teste `python --version`
    de novo depois.
 
-4. Instale o Flask (única dependência externa):
+4. Instale as dependências (hoje só o Flask, mas isso pode crescer):
    ```
-   pip install flask
+   pip install -r requirements.txt
    ```
 
 ## 2. Testar localmente no PC novo
@@ -192,29 +192,28 @@ O código do sistema agora vive num repositório Git. Isso separa **código**
 No PC de desenvolvimento, depois de qualquer mudança, o código é commitado e
 enviado (`git push`) pro repositório remoto.
 
-No PC da loja, pra buscar a atualização:
+No PC da loja, pra buscar a atualização, é só dar duplo clique em
+**`atualizar.bat`**. Ele faz tudo sozinho:
 
-1. Feche o sistema (feche a janela preta do `iniciar_servidor.bat`, ou pare
-   o processo).
-2. Abra um terminal na pasta `C:\sistema-conveniencia` e rode:
-   ```
-   git pull
-   ```
-   Isso baixa e aplica só os arquivos de código que mudaram — o
+1. Roda `git pull` — baixa e aplica só os arquivos de código que mudaram. O
    `estoque.db` fica intocado porque está fora do controle do Git.
-3. Se alguma mudança precisar de uma biblioteca nova, rode `pip install
-   flask` de novo (eu aviso quando isso for necessário).
-4. Abra o `iniciar_servidor.bat` de novo. Se a atualização mudou a estrutura
-   do banco (uma tabela ou coluna nova), o próprio sistema ajusta isso
-   sozinho na hora que liga, sem apagar nada — é a mesma lógica segura que já usamos até aqui.
+2. Instala qualquer dependência nova automaticamente (via
+   `requirements.txt`), sem precisar lembrar de rodar `pip install` na mão.
+3. Fecha a janela do servidor antigo (se estiver aberta) e abre uma nova já
+   com a versão atualizada.
+
+Se a atualização mudou a estrutura do banco (uma tabela ou coluna nova), o
+próprio sistema ajusta isso sozinho na hora que liga, sem apagar nada — é a
+mesma lógica segura que já usamos até aqui.
+
+Se preferir fazer manualmente (ou o `.bat` falhar por algum motivo): feche a
+janela do servidor, abra um terminal na pasta `C:\sistema-conveniencia`,
+rode `git pull` e depois `pip install -r requirements.txt`, e abra o
+`iniciar_servidor.bat` de novo.
 
 **Antes de qualquer atualização importante, vale rodar `backup_diario.py`
 manualmente** (ou copiar `estoque.db` pra um lugar seguro) — é raro dar
 problema, mas é grátis se garantir.
-
-**Recomendado:** peça pra eu te passar um `atualizar.bat` simples que faz o
-`git pull` com um clique, quando for usar isso no dia a dia — assim ninguém
-precisa abrir terminal na loja.
 
 ## Limitações que você decidiu aceitar por enquanto (revisitar quando fizer
 ## sentido)
