@@ -22,6 +22,15 @@
     const modalFormaEl = document.getElementById("modal-forma");
     const btnModalOk = document.getElementById("btn-modal-ok");
     const btnImprimirComprovante = document.getElementById("btn-imprimir-comprovante");
+    const blocoTrocoEl = document.getElementById("bloco-troco");
+    const valorRecebidoEl = document.getElementById("valor-recebido");
+    const trocoInfoEl = document.getElementById("troco-info");
+    const modalTrocoEl = document.getElementById("modal-troco");
+    const gradeFavoritosEl = document.getElementById("grade-favoritos");
+    const descontoTipoEl = document.getElementById("desconto-tipo");
+    const descontoValorEl = document.getElementById("desconto-valor");
+    const totalComDescontoLinhaEl = document.getElementById("total-com-desconto-linha");
+    const totalComDescontoEl = document.getElementById("total-com-desconto");
 
     let produtoSelecionado = null;
     let ultimosResultados = [];
@@ -30,9 +39,19 @@
     let idsCarrinho = [];
     let itensCarrinho = [];
     let ultimaFormaPagamento = "";
+    let ultimoTroco = null;
+    let ultimoTotalFinal = 0;
+    let ultimoDesconto = 0;
 
     function formatarReal(valor) {
         return "R$ " + valor.toFixed(2).replace(".", ",");
+    }
+
+    function formatarDataHoraBr(data) {
+        const dois = (n) => String(n).padStart(2, "0");
+        const dataTxt = `${dois(data.getDate())}-${dois(data.getMonth() + 1)}-${data.getFullYear()}`;
+        const horaTxt = `${dois(data.getHours())}:${dois(data.getMinutes())}:${dois(data.getSeconds())}`;
+        return `${dataTxt} ${horaTxt}`;
     }
 
     function limparResultados() {
@@ -52,7 +71,10 @@
         if (produtos.length === 0) {
             const li = document.createElement("li");
             li.className = "vazio";
-            li.textContent = "Nenhum produto encontrado com esse código/nome.";
+            const termoAtual = buscaEl.value.trim();
+            li.innerHTML = `Nenhum produto encontrado com esse código/nome.
+                ${termoAtual ? `<br><a href="/produtos/novo?sku_ean=${encodeURIComponent(termoAtual)}"
+                    target="_blank" rel="noopener">+ Cadastrar "${escapeHtml(termoAtual)}" agora</a>` : ""}`;
             resultadosEl.appendChild(li);
             resultadosEl.classList.remove("hidden");
             return;
@@ -75,7 +97,7 @@
         return div.innerHTML;
     }
 
-    function selecionarProduto(produto) {
+    function selecionarProduto(produto, quantidadeInicial) {
         produtoSelecionado = produto;
         limparResultados();
         buscaEl.value = "";
@@ -84,7 +106,7 @@
         const saldoTxt = produto.saldo_atual != null ? produto.saldo_atual : "sem contagem (inventário pendente)";
         itemInfoEl.textContent = `${produto.sku_ean} · saldo atual: ${saldoTxt}`;
 
-        quantidadeEl.value = "1";
+        quantidadeEl.value = String(quantidadeInicial || 1);
         precoEl.value = produto.preco_venda != null ? produto.preco_venda.toFixed(2) : "";
         itemAvisoEl.classList.add("hidden");
 
@@ -147,28 +169,67 @@
         semItensEl.classList.add("hidden");
         idsCarrinho.push(item.id);
         itensCarrinho.push({
+            id: item.id,
             descricao: item.descricao,
             quantidade: item.quantidade,
             preco: item.preco,
             valor_total: item.valor_total,
         });
         const tr = document.createElement("tr");
+        tr.dataset.itemId = item.id;
         tr.innerHTML = `
             <td>${escapeHtml(item.descricao)}</td>
             <td class="mono">${item.quantidade}</td>
             <td class="mono">${formatarReal(item.preco)}</td>
             <td class="mono">${formatarReal(item.valor_total)}</td>
+            <td><button type="button" class="link-perigo btn-cancelar-linha" title="Remover esse item">remover</button></td>
         `;
         tabelaCorpo.appendChild(tr);
         totalAtual += item.valor_total;
         totalVendaEl.textContent = formatarReal(totalAtual);
+        atualizarResumoFinanceiro();
 
         if (item.aviso) {
             const trAviso = document.createElement("tr");
-            trAviso.innerHTML = `<td colspan="4" class="aviso-linha">${escapeHtml(item.aviso)}</td>`;
+            trAviso.innerHTML = `<td colspan="5" class="aviso-linha">${escapeHtml(item.aviso)}</td>`;
             tabelaCorpo.appendChild(trAviso);
         }
     }
+
+    async function cancelarItemCarrinho(itemId, tr) {
+        const botao = tr.querySelector(".btn-cancelar-linha");
+        botao.disabled = true;
+        try {
+            const resp = await fetch(`/api/vendas/item/${itemId}/cancelar`, { method: "POST" });
+            const dados = await resp.json();
+            if (!resp.ok) {
+                mostrarAvisoFinalizar(dados.erro || "Não foi possível remover esse item.");
+                botao.disabled = false;
+                return;
+            }
+            const indice = itensCarrinho.findIndex((i) => i.id === itemId);
+            if (indice !== -1) {
+                totalAtual -= itensCarrinho[indice].valor_total;
+                itensCarrinho.splice(indice, 1);
+            }
+            idsCarrinho = idsCarrinho.filter((id) => id !== itemId);
+            tr.remove();
+            totalVendaEl.textContent = formatarReal(totalAtual);
+            atualizarResumoFinanceiro();
+            if (idsCarrinho.length === 0) semItensEl.classList.remove("hidden");
+        } catch (e) {
+            mostrarAvisoFinalizar("Falha de comunicação com o servidor.");
+            botao.disabled = false;
+        }
+    }
+
+    tabelaCorpo.addEventListener("click", (ev) => {
+        const botao = ev.target.closest(".btn-cancelar-linha");
+        if (!botao) return;
+        const tr = botao.closest("tr");
+        const itemId = Number(tr.dataset.itemId);
+        cancelarItemCarrinho(itemId, tr);
+    });
 
     function limparTela() {
         tabelaCorpo.innerHTML = "";
@@ -179,7 +240,63 @@
         itensCarrinho = [];
         formaPagamentoEl.value = "";
         finalizarAvisoEl.classList.add("hidden");
+        valorRecebidoEl.value = "";
+        blocoTrocoEl.classList.add("hidden");
+        trocoInfoEl.textContent = "";
+        ultimoTroco = null;
+        descontoTipoEl.value = "nenhum";
+        descontoValorEl.value = "";
+        descontoValorEl.disabled = true;
+        totalComDescontoLinhaEl.classList.add("hidden");
+        ultimoTotalFinal = 0;
+        ultimoDesconto = 0;
         buscaEl.focus();
+    }
+
+    function totalComDesconto() {
+        const tipo = descontoTipoEl.value;
+        const valor = parseFloat(descontoValorEl.value);
+        if (tipo === "nenhum" || !(valor >= 0)) return totalAtual;
+        if (tipo === "percentual") {
+            const percentual = Math.min(valor, 100);
+            return Math.max(0, totalAtual * (1 - percentual / 100));
+        }
+        // valor fixo
+        return Math.max(0, totalAtual - valor);
+    }
+
+    function atualizarResumoFinanceiro() {
+        const tipo = descontoTipoEl.value;
+        const comDesconto = totalComDesconto();
+        if (tipo === "nenhum") {
+            totalComDescontoLinhaEl.classList.add("hidden");
+        } else {
+            totalComDescontoLinhaEl.classList.remove("hidden");
+            totalComDescontoEl.textContent = formatarReal(comDesconto);
+        }
+        atualizarTroco(comDesconto);
+    }
+
+    function atualizarTroco(totalParaCobrar) {
+        const total = totalParaCobrar != null ? totalParaCobrar : totalComDesconto();
+        const ehDinheiro = formaPagamentoEl.value === "Dinheiro";
+        blocoTrocoEl.classList.toggle("hidden", !ehDinheiro);
+        if (!ehDinheiro) {
+            ultimoTroco = null;
+            return;
+        }
+        const recebido = parseFloat(valorRecebidoEl.value);
+        if (!(recebido >= 0)) {
+            trocoInfoEl.textContent = "";
+            ultimoTroco = null;
+            return;
+        }
+        const troco = recebido - total;
+        ultimoTroco = troco;
+        trocoInfoEl.textContent = troco >= 0
+            ? `Troco: ${formatarReal(troco)}`
+            : `Faltam ${formatarReal(-troco)} pra cobrir o total.`;
+        trocoInfoEl.classList.toggle("erro", troco < 0);
     }
 
     async function finalizarVenda() {
@@ -198,7 +315,12 @@
             const resp = await fetch("/api/vendas/finalizar", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids: idsCarrinho, forma_pagamento: formaPagamento }),
+                body: JSON.stringify({
+                    ids: idsCarrinho,
+                    forma_pagamento: formaPagamento,
+                    desconto_tipo: descontoTipoEl.value,
+                    desconto_valor: descontoTipoEl.value !== "nenhum" ? parseFloat(descontoValorEl.value) || 0 : 0,
+                }),
             });
             const dados = await resp.json();
             if (!resp.ok) {
@@ -206,7 +328,12 @@
                 return;
             }
             ultimaFormaPagamento = formaPagamento;
-            mostrarModalSucesso(totalAtual, formaPagamento);
+            ultimoTotalFinal = dados.total_final;
+            ultimoDesconto = dados.desconto_aplicado || 0;
+            // recalcula o troco com o total ja confirmado pelo servidor (evita
+            // qualquer diferenca de arredondamento entre o preview e o real)
+            atualizarTroco(ultimoTotalFinal);
+            mostrarModalSucesso(ultimoTotalFinal, formaPagamento, ultimoTroco);
         } catch (e) {
             mostrarAvisoFinalizar("Falha de comunicação com o servidor.");
         } finally {
@@ -216,9 +343,15 @@
 
     let timerModal = null;
 
-    function mostrarModalSucesso(total, formaPagamento) {
+    function mostrarModalSucesso(total, formaPagamento, troco) {
         modalTotalEl.textContent = formatarReal(total);
         modalFormaEl.textContent = "Pago via " + formaPagamento;
+        if (troco != null && troco >= 0) {
+            modalTrocoEl.textContent = "Troco: " + formatarReal(troco);
+            modalTrocoEl.classList.remove("hidden");
+        } else {
+            modalTrocoEl.classList.add("hidden");
+        }
         modalSucessoEl.classList.remove("hidden");
         btnModalOk.focus();
         clearTimeout(timerModal);
@@ -238,7 +371,7 @@
         clearTimeout(timerModal);
 
         const agora = new Date();
-        const dataHora = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR");
+        const dataHora = formatarDataHoraBr(agora);
         const nomeLoja = window.NOME_LOJA || "";
 
         const linhasItens = itensCarrinho.map((item) => {
@@ -270,8 +403,13 @@
     <hr>
     ${linhasItens}
     <hr>
-    <div class="total"><span>TOTAL</span><span>${formatarReal(totalAtual)}</span></div>
+    ${ultimoDesconto > 0 ? `
+    <div class="linha-item-valores"><span>Subtotal</span><span>${formatarReal(totalAtual)}</span></div>
+    <div class="linha-item-valores"><span>Desconto</span><span>-${formatarReal(ultimoDesconto)}</span></div>
+    ` : ""}
+    <div class="total"><span>TOTAL</span><span>${formatarReal(ultimoTotalFinal || totalAtual)}</span></div>
     <p class="centro">Forma de pagamento: ${escapeHtml(ultimaFormaPagamento)}</p>
+    ${ultimoTroco != null && ultimoTroco >= 0 ? `<p class="centro">Troco: ${formatarReal(ultimoTroco)}</p>` : ""}
 </body></html>`;
 
         const janela = window.open("", "comprovante", "width=340,height=600");
@@ -314,12 +452,22 @@
     buscaEl.addEventListener("keydown", async (ev) => {
         if (ev.key !== "Enter") return;
         ev.preventDefault();
-        const termo = buscaEl.value.trim();
+        let termo = buscaEl.value.trim();
         if (!termo) return;
+
+        // Atalho "3*codigo": vende 3 unidades do produto de uma vez, sem
+        // precisar preencher o campo de quantidade manualmente depois.
+        let multiplicador = 1;
+        const combinacaoMultiplicador = termo.match(/^(\d+)\*(.+)$/);
+        if (combinacaoMultiplicador) {
+            multiplicador = parseInt(combinacaoMultiplicador[1], 10) || 1;
+            termo = combinacaoMultiplicador[2].trim();
+        }
+
         clearTimeout(debounceTimer);
         const produtos = await executarBusca(termo);
         if (produtos.length === 1) {
-            selecionarProduto(produtos[0]);
+            selecionarProduto(produtos[0], multiplicador);
         }
     });
 
@@ -340,6 +488,25 @@
     modalSucessoEl.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter" || ev.key === "Escape") fecharModalSucesso();
     });
+
+    formaPagamentoEl.addEventListener("change", () => atualizarTroco());
+    valorRecebidoEl.addEventListener("input", () => atualizarTroco());
+
+    descontoTipoEl.addEventListener("change", () => {
+        descontoValorEl.disabled = descontoTipoEl.value === "nenhum";
+        if (descontoValorEl.disabled) descontoValorEl.value = "";
+        atualizarResumoFinanceiro();
+    });
+    descontoValorEl.addEventListener("input", atualizarResumoFinanceiro);
+
+    if (gradeFavoritosEl) {
+        gradeFavoritosEl.addEventListener("click", (ev) => {
+            const botao = ev.target.closest(".botao-favorito");
+            if (!botao) return;
+            const produto = JSON.parse(botao.dataset.produto);
+            selecionarProduto(produto);
+        });
+    }
 
     // Leitor USB funciona como teclado: so digita se o campo de busca tiver
     // foco. Clicar em qualquer area "morta" da pagina (fora de um campo,

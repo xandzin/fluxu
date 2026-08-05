@@ -56,6 +56,19 @@
         </div>
     </div>
 
+    <div class="campo">
+        <label for="estoque_minimo">Estoque mínimo (alerta no Dashboard quando o saldo cair até aqui)</label>
+        <input id="estoque_minimo" name="estoque_minimo" type="number" step="any" min="0" value="{{ valores.estoque_minimo }}"
+               placeholder="Deixe em branco pra só alertar quando zerar" class="mono">
+    </div>
+
+    <div class="campo checkbox-linha">
+        <label for="favorito">
+            <input id="favorito" name="favorito" type="checkbox" value="1" {% if valores.favorito == "1" %}checked{% endif %}>
+            Produto favorito (aparece como atalho de acesso rápido na tela de Venda)
+        </label>
+    </div>
+
     <div class="botoes">
         <button type="submit" class="primario">{{ "Cadastrar" if modo == "novo" else "Salvar alterações" }}</button>
         <a href="{{ url_for('estoque') }}" class="secundario botao-link">Cancelar</a>

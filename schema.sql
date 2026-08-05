@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS estoque (
     custo_unitario  REAL,
     preco_venda     REAL,
     saldo_atual     REAL,
-    validade        TEXT
+    validade        TEXT,
+    favorito        INTEGER NOT NULL DEFAULT 0,
+    estoque_minimo  REAL
 );
 
 CREATE TABLE IF NOT EXISTS compras (
@@ -31,7 +33,21 @@ CREATE TABLE IF NOT EXISTS caixa (
     valor_abertura      REAL NOT NULL,
     hora_fechamento     TEXT,
     valor_fechamento    REAL,
-    observacoes         TEXT
+    observacoes         TEXT,
+    operador_abertura   TEXT,
+    operador_fechamento TEXT
+);
+
+-- Sangria (retirada) e reforco (entrada extra) de dinheiro durante o turno,
+-- sem precisar fechar o caixa pra isso. Sem registrar, essas movimentacoes
+-- viram diferenca "fantasma" na hora de conferir a gaveta.
+CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    caixa_id    INTEGER NOT NULL REFERENCES caixa(id),
+    tipo        TEXT NOT NULL CHECK (tipo IN ('sangria', 'reforco')),
+    valor       REAL NOT NULL,
+    motivo      TEXT,
+    hora        TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS vendas (
@@ -42,7 +58,8 @@ CREATE TABLE IF NOT EXISTS vendas (
     quantidade          REAL NOT NULL,
     valor_total         REAL NOT NULL,
     forma_pagamento     TEXT,
-    caixa_id            INTEGER REFERENCES caixa(id)
+    caixa_id            INTEGER REFERENCES caixa(id),
+    venda_grupo         TEXT
 );
 
 -- Configuracoes simples do sistema (senha de acesso, etc), guardadas como
@@ -57,4 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_compras_data ON compras(data_compra);
 CREATE INDEX IF NOT EXISTS idx_vendas_sku ON vendas(sku_ean);
 CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas(data_venda);
 CREATE INDEX IF NOT EXISTS idx_vendas_caixa ON vendas(caixa_id);
+CREATE INDEX IF NOT EXISTS idx_caixa_mov_caixa ON caixa_movimentacoes(caixa_id);
+CREATE INDEX IF NOT EXISTS idx_vendas_grupo ON vendas(venda_grupo);
 CREATE INDEX IF NOT EXISTS idx_estoque_categoria ON estoque(categoria);
+CREATE INDEX IF NOT EXISTS idx_estoque_favorito ON estoque(favorito);

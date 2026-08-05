@@ -7,7 +7,7 @@
 <section class="card">
     <h2>Caixa aberto</h2>
     <p class="info">Aberto às {{ aberto.hora_abertura[11:16] }} com troco inicial de
-        R$ {{ "%.2f"|format(aberto.valor_abertura) }}.</p>
+        R$ {{ "%.2f"|format(aberto.valor_abertura) }}{% if aberto.operador_abertura %} por {{ aberto.operador_abertura }}{% endif %}.</p>
 
     <table class="tabela-historico">
         <thead><tr><th>Forma</th><th>Lançamentos</th><th>Total</th></tr></thead>
@@ -28,7 +28,57 @@
         <span>Dinheiro esperado em caixa</span>
         <span class="mono">R$ {{ "%.2f"|format(dinheiro_esperado) }}</span>
     </div>
-    <p class="info">Troco inicial + vendas em Dinheiro. PIX/Débito/Crédito não entram na gaveta física.</p>
+    <p class="info">
+        Troco inicial + vendas em Dinheiro + reforços − sangrias. PIX/Débito/Crédito não entram na gaveta física.
+        {% if total_reforco or total_sangria %}
+        (Reforços: R$ {{ "%.2f"|format(total_reforco) }} · Sangrias: R$ {{ "%.2f"|format(total_sangria) }})
+        {% endif %}
+    </p>
+</section>
+
+<section class="card">
+    <h2>Sangria / reforço</h2>
+    <p class="info">Registre aqui sempre que tirar dinheiro da gaveta (sangria) ou repor troco (reforço) durante o turno — sem isso, o valor esperado no fechamento não bate.</p>
+    <form method="post" action="{{ url_for('caixa_movimentacao') }}">
+        <div class="grade-2">
+            <div class="campo">
+                <label for="tipo">Tipo</label>
+                <div class="select-wrap">
+                    <select id="tipo" name="tipo" required>
+                        <option value="sangria">Sangria (retirada)</option>
+                        <option value="reforco">Reforço (entrada)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="campo">
+                <label for="valor_movimentacao">Valor (R$)</label>
+                <input id="valor_movimentacao" name="valor" type="number" step="0.01" min="0.01" required class="mono">
+            </div>
+        </div>
+        <div class="campo">
+            <label for="motivo">Motivo (opcional)</label>
+            <input id="motivo" name="motivo" type="text" placeholder="Ex: troco pro caixa 2, deposito no cofre...">
+        </div>
+        <div class="botoes">
+            <button type="submit" class="secundario">Registrar movimentação</button>
+        </div>
+    </form>
+
+    {% if movimentacoes %}
+    <table class="tabela-historico">
+        <thead><tr><th>Hora</th><th>Tipo</th><th>Valor</th><th>Motivo</th></tr></thead>
+        <tbody>
+            {% for m in movimentacoes %}
+            <tr>
+                <td class="mono">{{ m.hora[11:16] }}</td>
+                <td>{{ "Sangria" if m.tipo == "sangria" else "Reforço" }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(m.valor) }}</td>
+                <td>{{ m.motivo or "—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
 </section>
 
 <section class="card">
@@ -37,6 +87,10 @@
         <div class="campo">
             <label for="valor_fechamento">Valor contado na gaveta (R$)</label>
             <input id="valor_fechamento" name="valor_fechamento" type="number" step="0.01" min="0" required autofocus class="mono">
+        </div>
+        <div class="campo">
+            <label for="operador_fechamento">Nome de quem está fechando (opcional)</label>
+            <input id="operador_fechamento" name="operador" type="text">
         </div>
         <div class="campo">
             <label for="observacoes">Observações (opcional)</label>
@@ -60,6 +114,10 @@
             <label for="valor_abertura">Troco inicial (R$)</label>
             <input id="valor_abertura" name="valor_abertura" type="number" step="0.01" min="0" value="0" required autofocus class="mono">
         </div>
+        <div class="campo">
+            <label for="operador_abertura">Nome de quem está abrindo (opcional)</label>
+            <input id="operador_abertura" name="operador" type="text">
+        </div>
         <div class="botoes">
             <button type="submit" class="primario">Abrir caixa</button>
         </div>
@@ -71,15 +129,16 @@
 <section class="card">
     <h2>Últimos fechamentos</h2>
     <table class="tabela-historico">
-        <thead><tr><th>Data</th><th>Abertura</th><th>Fechamento</th><th>Troco inicial</th><th>Esperado</th><th>Contado</th><th>Diferença</th></tr></thead>
+        <thead><tr><th>Data</th><th>Abertura</th><th>Fechamento</th><th>Operador</th><th>Troco inicial</th><th>Esperado</th><th>Contado</th><th>Diferença</th></tr></thead>
         <tbody>
             {% for c in historico %}
-            {% set esperado = c.valor_abertura + c.total_dinheiro %}
+            {% set esperado = c.valor_abertura + c.total_dinheiro + c.total_reforco - c.total_sangria %}
             {% set diferenca = c.valor_fechamento - esperado %}
             <tr class="{{ 'saldo-baixo' if diferenca and diferenca|abs > 0.009 }}">
-                <td>{{ c.data }}</td>
+                <td>{{ c.data|data_br }}</td>
                 <td>{{ c.hora_abertura[11:16] }}</td>
                 <td>{{ c.hora_fechamento[11:16] if c.hora_fechamento else "—" }}</td>
+                <td>{{ c.operador_abertura or "—" }} → {{ c.operador_fechamento or "—" }}</td>
                 <td class="mono">R$ {{ "%.2f"|format(c.valor_abertura) }}</td>
                 <td class="mono">R$ {{ "%.2f"|format(esperado) }}</td>
                 <td class="mono">R$ {{ "%.2f"|format(c.valor_fechamento) if c.valor_fechamento is not none else "—" }}</td>

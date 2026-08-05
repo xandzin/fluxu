@@ -13,9 +13,91 @@
             <tr><td>Compras registradas (histórico total)</td><td>{{ stats.compras }}</td></tr>
             <tr><td>Faturamento acumulado</td><td class="mono">R$ {{ "%.2f"|format(stats.faturamento_total) }}</td></tr>
             <tr><td>Tamanho do banco</td><td>{{ tamanho_banco_mb }} MB</td></tr>
-            <tr><td>Último backup encontrado</td><td>{{ ultimo_backup or "nenhum backup encontrado na pasta backups\\" }}</td></tr>
+            <tr><td>Versão instalada</td><td class="mono">{{ versao_sistema }}</td></tr>
         </tbody>
     </table>
+</section>
+
+<section class="card">
+    <h2>Alertas de estoque</h2>
+    <p class="info">
+        Estoque baixo: {{ contagem_alertas.sem_saldo }} · Sem preço cadastrado: {{ contagem_alertas.sem_preco }} ·
+        Vencidos ou vencendo em {{ dias_alerta_validade }} dias: {{ contagem_alertas.validade }}
+        (mostrando até 15 de cada abaixo — veja a lista completa em Estoque).
+    </p>
+
+    {% if alertas.sem_saldo %}
+    <h3>Estoque baixo (zerado, negativo, ou abaixo do mínimo cadastrado)</h3>
+    <table class="tabela-historico">
+        <thead><tr><th>SKU/EAN</th><th>Produto</th><th>Saldo</th><th>Mínimo</th></tr></thead>
+        <tbody>
+            {% for p in alertas.sem_saldo %}
+            <tr><td class="mono">{{ p.sku_ean }}</td><td>{{ p.descricao }}</td><td class="mono">{{ p.saldo_atual }}</td><td class="mono">{{ p.estoque_minimo if p.estoque_minimo is not none else "0 (padrão)" }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if alertas.sem_preco %}
+    <h3>Sem preço cadastrado</h3>
+    <table class="tabela-historico">
+        <thead><tr><th>SKU/EAN</th><th>Produto</th></tr></thead>
+        <tbody>
+            {% for p in alertas.sem_preco %}
+            <tr><td class="mono">{{ p.sku_ean }}</td><td>{{ p.descricao }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if alertas.validade %}
+    <h3>Vencidos ou vencendo em {{ dias_alerta_validade }} dias</h3>
+    <table class="tabela-historico">
+        <thead><tr><th>SKU/EAN</th><th>Produto</th><th>Validade</th></tr></thead>
+        <tbody>
+            {% for p in alertas.validade %}
+            <tr><td class="mono">{{ p.sku_ean }}</td><td>{{ p.descricao }}</td><td class="mono">{{ p.validade|data_br }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if not alertas.sem_saldo and not alertas.sem_preco and not alertas.validade %}
+    <p class="estado-vazio"><span class="estado-vazio-icone">✓</span>Nenhum alerta no momento.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Backup</h2>
+    <form method="post" action="{{ url_for('dashboard_backup') }}">
+        <div class="botoes">
+            <button type="submit" class="secundario">Fazer backup agora</button>
+        </div>
+    </form>
+    <table class="tabela-historico">
+        <thead><tr><th>Arquivo</th><th>Tamanho</th></tr></thead>
+        <tbody>
+            {% for b in backups %}
+            <tr><td class="mono">{{ b.nome }}</td><td class="mono">{{ b.tamanho_kb }} KB</td></tr>
+            {% else %}
+            <tr><td colspan="2"><p class="estado-vazio"><span class="estado-vazio-icone">+</span>Nenhum backup encontrado ainda.</p></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Formas de pagamento</h2>
+    <p class="info">Uma por linha. Aparecem na tela de Venda nessa mesma ordem.</p>
+    <form method="post" action="{{ url_for('dashboard_formas_pagamento') }}">
+        <div class="campo">
+            <label for="formas_pagamento">Formas de pagamento aceitas</label>
+            <textarea id="formas_pagamento" name="formas_pagamento" rows="5" class="mono">{{ formas_pagamento_texto }}</textarea>
+        </div>
+        <div class="botoes">
+            <button type="submit" class="secundario">Salvar</button>
+        </div>
+    </form>
 </section>
 
 <section class="card">

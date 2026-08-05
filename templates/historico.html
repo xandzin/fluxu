@@ -14,12 +14,15 @@
         <tbody>
             {% for v in vendas %}
             <tr>
-                <td>{{ v.data_venda }}</td>
+                <td>{{ v.data_venda|data_br }}</td>
                 <td>{{ v.produto_nome_raw }}</td>
                 <td class="mono">{{ v.quantidade }}</td>
                 <td class="mono">R$ {{ "%.2f"|format(v.valor_total) }}</td>
                 <td>{{ v.forma_pagamento or "—" }}</td>
                 <td class="acoes">
+                    {% if v.venda_grupo %}
+                    <a href="{{ url_for('venda_comprovante', grupo=v.venda_grupo) }}" target="_blank">reimprimir</a>
+                    {% endif %}
                     <a href="{{ url_for('venda_editar', venda_id=v.id) }}">editar</a>
                     <form method="post" action="{{ url_for('venda_excluir', venda_id=v.id) }}" class="form-inline"
                           onsubmit="return confirm('Excluir esta venda de {{ v.quantidade }}x {{ v.produto_nome_raw|e }}? Isso devolve a quantidade ao estoque, se o item tiver saldo controlado.');">
@@ -41,7 +44,7 @@
         <tbody>
             {% for c in compras %}
             <tr>
-                <td>{{ c.data_compra }}</td>
+                <td>{{ c.data_compra|data_br }}</td>
                 <td>{{ c.descricao or c.sku_ean }}</td>
                 <td>{{ c.fornecedor or "—" }}</td>
                 <td class="mono">{{ c.quantidade }}</td>

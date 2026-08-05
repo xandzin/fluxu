@@ -24,6 +24,11 @@
         return "R$ " + Number(valor).toFixed(2).replace(".", ",");
     }
 
+    function formatarDataBr(iso) {
+        const [ano, mes, dia] = iso.split("-");
+        return `${dia}-${mes}-${ano}`;
+    }
+
     function escapeHtml(texto) {
         const div = document.createElement("div");
         div.textContent = texto;
@@ -155,7 +160,7 @@
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${data}</td>
+            <td>${formatarDataBr(data)}</td>
             <td>${escapeHtml(item.descricao)}</td>
             <td>${escapeHtml(fornecedor || "—")}</td>
             <td class="mono">${item.quantidade}</td>

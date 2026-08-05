@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Comprovante</title>
+<style>
+    @page { size: 80mm auto; margin: 2mm; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; width: 76mm; margin: 0; }
+    h1 { font-size: 13px; text-align: center; margin: 0 0 4px; }
+    .centro { text-align: center; }
+    hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+    .linha-item { margin-bottom: 3px; }
+    .linha-item-valores { display: flex; justify-content: space-between; }
+    .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
+    .aviso-tela { font-family: sans-serif; text-align: center; margin-top: 12px; }
+    @media print { .aviso-tela { display: none; } }
+</style>
+</head>
+<body>
+    {% if nome_loja %}<h1>{{ nome_loja }}</h1>{% endif %}
+    <p class="centro">Comprovante de venda (via reimpressão)<br>(não é documento fiscal)</p>
+    <p class="centro">{{ data_venda|data_br }}</p>
+    <hr>
+    {% for item in itens %}
+    <div class="linha-item">
+        <div>{{ item.produto_nome_raw }}</div>
+        <div class="linha-item-valores">
+            <span>{{ item.quantidade }} un.</span>
+            <span>R$ {{ "%.2f"|format(item.valor_total) }}</span>
+        </div>
+    </div>
+    {% endfor %}
+    <hr>
+    <div class="total"><span>TOTAL</span><span>R$ {{ "%.2f"|format(total) }}</span></div>
+    <p class="centro">Forma de pagamento: {{ forma_pagamento or "não informada" }}</p>
+    <p class="aviso-tela">Enviando para impressão...</p>
+    <script>window.print();</script>
+</body>
+</html>

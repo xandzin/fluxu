@@ -82,7 +82,7 @@
             <td class="mono">{{ "R$ %.2f"|format(item.custo_unitario) if item.custo_unitario is not none else "—" }}</td>
             <td class="mono">{{ "R$ %.2f"|format(item.preco_venda) if item.preco_venda is not none else "—" }}</td>
             <td class="mono">{{ item.saldo_atual if item.saldo_atual is not none else "sem contagem" }}</td>
-            <td>{{ item.validade or "—" }}</td>
+            <td>{{ item.validade|data_br }}</td>
             <td><a href="{{ url_for('produto_editar', sku=item.sku_ean) }}">editar</a></td>
         </tr>
         {% else %}

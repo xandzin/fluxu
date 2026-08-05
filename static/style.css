@@ -131,6 +131,7 @@ main {
 
 h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 1.5rem; }
 h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
+h3 { font-size: 0.9rem; color: var(--muted); margin: 1.2rem 0 0.4rem; }
 
 .card {
     background: var(--card);
@@ -147,7 +148,7 @@ label {
     margin-bottom: 0.3rem;
 }
 
-input[type="text"], input[type="number"], input[type="password"], input[type="date"], select {
+input[type="text"], input[type="number"], input[type="password"], input[type="date"], select, textarea {
     width: 100%;
     padding: 0.6rem 0.7rem;
     border: 1px solid var(--card-borda);
@@ -157,7 +158,12 @@ input[type="text"], input[type="number"], input[type="password"], input[type="da
     color: var(--texto);
 }
 
-input:focus, select:focus {
+textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
     outline: 2px solid var(--primaria);
     outline-offset: 1px;
 }
@@ -266,6 +272,7 @@ button, .botao-link {
     font-size: 0.9rem;
 }
 .aviso.erro { background: #2b1414; color: #f87171; }
+.info.erro { color: var(--erro); }
 .aviso.ok { background: #0f2b1a; color: #4ade80; }
 
 table {
@@ -302,6 +309,29 @@ table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
 
 .campo { margin-bottom: 1rem; }
 .grade-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.grade-favoritos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.6rem;
+}
+
+.botao-favorito {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    background: var(--bg);
+    color: var(--texto);
+    border: 1px solid var(--card-borda);
+    border-radius: 8px;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.85rem;
+    text-align: left;
+    white-space: normal;
+}
+.botao-favorito:hover { border-color: var(--primaria); }
+.botao-favorito span { color: var(--muted); }
 
 table.tabela-historico { width: 100%; }
 

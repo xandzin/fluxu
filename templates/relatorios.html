@@ -14,6 +14,8 @@
     </div>
     <button type="submit" class="primario">Filtrar</button>
     <a href="{{ url_for('relatorios') }}" class="secundario botao-link">Hoje</a>
+    <a href="{{ url_for('relatorios_csv', data_ini=data_ini, data_fim=data_fim) }}" class="secundario botao-link">Exportar CSV</a>
+    <a href="{{ url_for('relatorios_pdf', data_ini=data_ini, data_fim=data_fim) }}" class="secundario botao-link">Exportar PDF</a>
 </form>
 
 <section class="card">

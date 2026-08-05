@@ -60,7 +60,7 @@
         <tbody id="historico-corpo">
             {% for c in historico %}
             <tr>
-                <td>{{ c.data_compra }}</td>
+                <td>{{ c.data_compra|data_br }}</td>
                 <td>{{ c.descricao }}</td>
                 <td>{{ c.fornecedor or "—" }}</td>
                 <td class="mono">{{ c.quantidade }}</td>

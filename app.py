@@ -10,23 +10,32 @@ So um PC roda esse app.py (o que guarda o estoque.db); os outros PCs acessam
 pelo navegador via IP desse PC na rede local, tipo http://192.168.0.X:5000.
 """
 
+import csv
+import io
 import os
 import secrets
 import sqlite3
+import subprocess
 from datetime import date, datetime, timedelta
 
-from flask import (Flask, abort, flash, get_flashed_messages, jsonify,
-                    redirect, render_template, request, session, url_for)
+from flask import (Flask, Response, abort, flash, get_flashed_messages,
+                    jsonify, redirect, render_template, request, session,
+                    url_for)
+from fpdf import FPDF
 from werkzeug.security import check_password_hash, generate_password_hash
+
+import backup_diario
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "estoque.db")
 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 SECRET_KEY_PATH = os.path.join(BASE_DIR, "secret_key.txt")
+BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 
-# Unica fonte da verdade das opcoes do seletor na tela de venda. Pra adicionar
-# uma forma de pagamento nova (ex: "Vale-refeicao"), so acrescentar aqui.
-FORMAS_PAGAMENTO = ["PIX", "Débito", "Crédito", "Dinheiro"]
+# Valores usados so na primeira vez (config vazia) ou se o dono zerar o campo
+# de formas de pagamento no Dashboard sem digitar nada — nunca fica sem opcao
+# nenhuma pra vender.
+FORMAS_PAGAMENTO_PADRAO = ["PIX", "Débito", "Crédito", "Dinheiro"]
 
 # Rotas que funcionam sem estar logado. Tudo mais exige senha (PRD-0 do dia
 # da implantacao: sistema inteiro protegido, senha unica compartilhada).
@@ -65,12 +74,32 @@ def garantir_schema(caminho_db):
             "hora_fechamento TEXT, valor_fechamento REAL, observacoes TEXT)"
         )
         conn.execute("CREATE TABLE IF NOT EXISTS config (chave TEXT PRIMARY KEY, valor TEXT)")
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS caixa_movimentacoes ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, caixa_id INTEGER NOT NULL REFERENCES caixa(id), "
+            "tipo TEXT NOT NULL CHECK (tipo IN ('sangria', 'reforco')), valor REAL NOT NULL, "
+            "motivo TEXT, hora TEXT NOT NULL)"
+        )
+
+        colunas_caixa = [linha[1] for linha in conn.execute("PRAGMA table_info(caixa)")]
+        if "operador_abertura" not in colunas_caixa:
+            conn.execute("ALTER TABLE caixa ADD COLUMN operador_abertura TEXT")
+        if "operador_fechamento" not in colunas_caixa:
+            conn.execute("ALTER TABLE caixa ADD COLUMN operador_fechamento TEXT")
 
         colunas_vendas = [linha[1] for linha in conn.execute("PRAGMA table_info(vendas)")]
         if "forma_pagamento" not in colunas_vendas:
             conn.execute("ALTER TABLE vendas ADD COLUMN forma_pagamento TEXT")
         if "caixa_id" not in colunas_vendas:
             conn.execute("ALTER TABLE vendas ADD COLUMN caixa_id INTEGER REFERENCES caixa(id)")
+        if "venda_grupo" not in colunas_vendas:
+            conn.execute("ALTER TABLE vendas ADD COLUMN venda_grupo TEXT")
+
+        colunas_estoque = [linha[1] for linha in conn.execute("PRAGMA table_info(estoque)")]
+        if "favorito" not in colunas_estoque:
+            conn.execute("ALTER TABLE estoque ADD COLUMN favorito INTEGER NOT NULL DEFAULT 0")
+        if "estoque_minimo" not in colunas_estoque:
+            conn.execute("ALTER TABLE estoque ADD COLUMN estoque_minimo REAL")
         conn.commit()
 
         conn.executescript(texto_schema)
@@ -96,6 +125,22 @@ garantir_schema(DB_PATH)
 app = Flask(__name__)
 app.secret_key = carregar_secret_key()
 app.permanent_session_lifetime = timedelta(days=14)
+
+
+def formatar_data_br(valor):
+    """Converte uma data ISO ('AAAA-MM-DD', com ou sem hora junto) pra
+    'DD-MM-AAAA'. O banco continua guardando em ISO (schema.sql explica o
+    porque: ordenacao e comparacao BETWEEN/<=/>= so funcionam direito em
+    texto assim) — essa formatacao e so pra exibicao nos templates."""
+    if not valor:
+        return "—"
+    try:
+        return datetime.strptime(valor[:10], "%Y-%m-%d").strftime("%d-%m-%Y")
+    except ValueError:
+        return valor
+
+
+app.jinja_env.filters["data_br"] = formatar_data_br
 
 
 @app.before_request
@@ -127,6 +172,31 @@ def definir_config(conn, chave, valor):
         "ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor",
         (chave, valor),
     )
+
+
+def obter_formas_pagamento(conn):
+    bruto = obter_config(conn, "formas_pagamento")
+    if not bruto:
+        return list(FORMAS_PAGAMENTO_PADRAO)
+    formas = [linha.strip() for linha in bruto.splitlines() if linha.strip()]
+    return formas or list(FORMAS_PAGAMENTO_PADRAO)
+
+
+def obter_versao_sistema():
+    """Commit atual do Git (curto), pra conferir no Dashboard se um
+    'atualizar.bat' realmente aplicou a ultima versao. Se o PC nao tiver git
+    instalado ou a pasta nao for um repositorio, mostra 'desconhecida' em vez
+    de quebrar a pagina."""
+    try:
+        resultado = subprocess.run(
+            ["git", "log", "-1", "--format=%h — %cd — %s", "--date=short"],
+            cwd=BASE_DIR, capture_output=True, text=True, timeout=5,
+        )
+        if resultado.returncode == 0 and resultado.stdout.strip():
+            return resultado.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return "desconhecida (git não disponível)"
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -212,7 +282,8 @@ def listar_categorias(conn):
     )]
 
 
-CAMPOS_PRODUTO = ["sku_ean", "descricao", "categoria", "unidade", "custo_unitario", "preco_venda", "saldo_atual", "validade"]
+CAMPOS_PRODUTO = ["sku_ean", "descricao", "categoria", "unidade", "custo_unitario", "preco_venda", "saldo_atual",
+                   "validade", "estoque_minimo", "favorito"]
 
 
 def ler_form_produto(form):
@@ -243,6 +314,9 @@ def validar_produto(valores):
     saldo, erro = numero_opcional(valores["saldo_atual"], "Saldo")
     if erro:
         return None, erro
+    estoque_minimo, erro = numero_opcional(valores["estoque_minimo"], "Estoque mínimo")
+    if erro:
+        return None, erro
 
     return {
         "sku_ean": valores["sku_ean"],
@@ -253,6 +327,8 @@ def validar_produto(valores):
         "preco_venda": preco,
         "saldo_atual": saldo,
         "validade": valores["validade"] or None,
+        "estoque_minimo": estoque_minimo,
+        "favorito": 1 if valores["favorito"] else 0,
     }, None
 
 
@@ -275,7 +351,14 @@ def venda():
             flash("Abra o caixa antes de registrar vendas.", "erro")
             return redirect(url_for("caixa"))
         nome_loja = obter_config(conn, "nome_loja") or ""
-        return render_template("venda.html", formas_pagamento=FORMAS_PAGAMENTO, nome_loja=nome_loja)
+        favoritos = conn.execute(
+            "SELECT sku_ean, descricao, preco_venda, custo_unitario, saldo_atual FROM estoque "
+            "WHERE favorito = 1 ORDER BY descricao LIMIT 24"
+        ).fetchall()
+        return render_template(
+            "venda.html", formas_pagamento=obter_formas_pagamento(conn), nome_loja=nome_loja,
+            favoritos=[row_to_produto(r) for r in favoritos],
+        )
     finally:
         conn.close()
 
@@ -382,28 +465,130 @@ def api_registrar_item():
         conn.close()
 
 
+@app.route("/api/vendas/item/<int:item_id>/cancelar", methods=["POST"])
+def api_cancelar_item(item_id):
+    """Cancela um item ainda no carrinho (nao finalizado ainda) — devolve o
+    estoque e apaga o lancamento. Diferente de venda_excluir: essa aqui e
+    pra corrigir um erro de scanner na hora, sem sair da tela de Venda. Uma
+    venda ja finalizada (com venda_grupo) so pode ser corrigida pelo
+    Historico, de proposito — evita apagar um lancamento que o cliente ja
+    pagou sem passar pelo fluxo de auditoria."""
+    conn = get_conn()
+    try:
+        venda_row = conn.execute("SELECT * FROM vendas WHERE id = ?", (item_id,)).fetchone()
+        if not venda_row:
+            return jsonify({"erro": "Item não encontrado."}), 404
+        if venda_row["venda_grupo"] is not None:
+            return jsonify({"erro": "Essa venda já foi finalizada — corrija pelo Histórico."}), 409
+
+        conn.execute("BEGIN")
+        if venda_row["sku_ean"]:
+            produto = buscar_por_sku(conn, venda_row["sku_ean"])
+            if produto is not None and produto["saldo_atual"] is not None:
+                conn.execute(
+                    "UPDATE estoque SET saldo_atual = saldo_atual + ? WHERE sku_ean = ?",
+                    (venda_row["quantidade"], venda_row["sku_ean"]),
+                )
+        conn.execute("DELETE FROM vendas WHERE id = ?", (item_id,))
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def calcular_valores_com_desconto(itens, desconto_tipo, desconto_valor):
+    """Recebe uma lista de sqlite3.Row (com 'id' e 'valor_total') e devolve
+    uma lista de (id, novo_valor_total) com o desconto aplicado
+    proporcionalmente a cada item. O ultimo item absorve a sobra do
+    arredondamento, pra soma bater exatamente com o novo total — assim os
+    relatorios (que somam valor_total) continuam corretos mesmo com desconto."""
+    total_original = sum(item["valor_total"] for item in itens)
+
+    if not desconto_tipo or desconto_tipo == "nenhum":
+        return [(item["id"], item["valor_total"]) for item in itens], None
+
+    if desconto_tipo == "percentual":
+        if not (0 <= desconto_valor <= 100):
+            raise ValueError("Desconto percentual precisa ser entre 0 e 100.")
+        novo_total = round(total_original * (1 - desconto_valor / 100), 2)
+    elif desconto_tipo == "valor":
+        if not (0 <= desconto_valor <= total_original):
+            raise ValueError("Desconto em reais não pode ser negativo nem maior que o total da venda.")
+        novo_total = round(total_original - desconto_valor, 2)
+    else:
+        raise ValueError("Tipo de desconto inválido.")
+
+    fator = (novo_total / total_original) if total_original > 0 else 1
+    resultado = []
+    acumulado = 0
+    for item in itens[:-1]:
+        novo_valor = round(item["valor_total"] * fator, 2)
+        acumulado += novo_valor
+        resultado.append((item["id"], novo_valor))
+    ultimo = itens[-1]
+    resultado.append((ultimo["id"], round(novo_total - acumulado, 2)))
+    return resultado, total_original - novo_total
+
+
 @app.route("/api/vendas/finalizar", methods=["POST"])
 def api_finalizar_venda():
     dados = request.get_json(force=True, silent=True) or {}
     ids = dados.get("ids") or []
     forma_pagamento = str(dados.get("forma_pagamento", "")).strip()
+    desconto_tipo = dados.get("desconto_tipo")
+    desconto_valor_bruto = dados.get("desconto_valor")
 
     if not ids:
         return jsonify({"erro": "Nenhum item pra finalizar."}), 400
-    if forma_pagamento not in FORMAS_PAGAMENTO:
-        return jsonify({"erro": "Forma de pagamento inválida."}), 400
     if not all(isinstance(i, int) for i in ids):
         return jsonify({"erro": "IDs inválidos."}), 400
 
+    desconto_valor = 0
+    if desconto_tipo and desconto_tipo != "nenhum":
+        try:
+            desconto_valor = float(desconto_valor_bruto)
+        except (TypeError, ValueError):
+            return jsonify({"erro": "Valor de desconto inválido."}), 400
+
     conn = get_conn()
     try:
+        if forma_pagamento not in obter_formas_pagamento(conn):
+            return jsonify({"erro": "Forma de pagamento inválida."}), 400
+
         marcadores = ",".join("?" * len(ids))
+        itens = conn.execute(
+            f"SELECT id, valor_total FROM vendas WHERE id IN ({marcadores}) AND venda_grupo IS NULL",
+            ids,
+        ).fetchall()
+        if len(itens) != len(ids):
+            return jsonify({"erro": "Algum item não foi encontrado (ou já foi finalizado antes)."}), 409
+
+        try:
+            novos_valores, valor_desconto_aplicado = calcular_valores_com_desconto(
+                itens, desconto_tipo, desconto_valor)
+        except ValueError as e:
+            return jsonify({"erro": str(e)}), 400
+
+        grupo = secrets.token_hex(6)
+        conn.execute("BEGIN")
+        for item_id, novo_valor in novos_valores:
+            conn.execute("UPDATE vendas SET valor_total = ? WHERE id = ?", (novo_valor, item_id))
         conn.execute(
-            f"UPDATE vendas SET forma_pagamento = ? WHERE id IN ({marcadores})",
-            [forma_pagamento] + ids,
+            f"UPDATE vendas SET forma_pagamento = ?, venda_grupo = ? WHERE id IN ({marcadores})",
+            [forma_pagamento, grupo] + ids,
         )
         conn.commit()
-        return jsonify({"ok": True})
+        return jsonify({
+            "ok": True, "venda_grupo": grupo,
+            "total_final": sum(v for _, v in novos_valores),
+            "desconto_aplicado": round(valor_desconto_aplicado, 2) if valor_desconto_aplicado else 0,
+        })
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -415,6 +600,9 @@ def caixa():
         aberto = obter_caixa_aberto(conn)
         resumo_pagamento = []
         dinheiro_esperado = None
+        movimentacoes = []
+        total_sangria = 0
+        total_reforco = 0
         if aberto is not None:
             resumo_pagamento = conn.execute(
                 "SELECT COALESCE(forma_pagamento, 'Não informada') AS forma, "
@@ -427,18 +615,29 @@ def caixa():
                 "WHERE caixa_id = ? AND forma_pagamento = 'Dinheiro'",
                 (aberto["id"],),
             ).fetchone()["total"]
-            dinheiro_esperado = aberto["valor_abertura"] + total_dinheiro
+            movimentacoes = conn.execute(
+                "SELECT * FROM caixa_movimentacoes WHERE caixa_id = ? ORDER BY id DESC",
+                (aberto["id"],),
+            ).fetchall()
+            total_sangria = sum(m["valor"] for m in movimentacoes if m["tipo"] == "sangria")
+            total_reforco = sum(m["valor"] for m in movimentacoes if m["tipo"] == "reforco")
+            dinheiro_esperado = aberto["valor_abertura"] + total_dinheiro + total_reforco - total_sangria
 
         historico = conn.execute(
             "SELECT c.*, "
             "(SELECT COALESCE(SUM(v.valor_total),0) FROM vendas v "
-            " WHERE v.caixa_id = c.id AND v.forma_pagamento = 'Dinheiro') AS total_dinheiro "
+            " WHERE v.caixa_id = c.id AND v.forma_pagamento = 'Dinheiro') AS total_dinheiro, "
+            "(SELECT COALESCE(SUM(m.valor),0) FROM caixa_movimentacoes m "
+            " WHERE m.caixa_id = c.id AND m.tipo = 'reforco') AS total_reforco, "
+            "(SELECT COALESCE(SUM(m.valor),0) FROM caixa_movimentacoes m "
+            " WHERE m.caixa_id = c.id AND m.tipo = 'sangria') AS total_sangria "
             "FROM caixa c WHERE c.hora_fechamento IS NOT NULL ORDER BY c.id DESC LIMIT 15"
         ).fetchall()
 
         return render_template(
             "caixa.html", aberto=aberto, resumo_pagamento=resumo_pagamento,
             dinheiro_esperado=dinheiro_esperado, historico=historico,
+            movimentacoes=movimentacoes, total_sangria=total_sangria, total_reforco=total_reforco,
             hoje=date.today().isoformat(),
         )
     finally:
@@ -461,11 +660,12 @@ def caixa_abrir():
         if valor_abertura < 0:
             flash("Valor de abertura não pode ser negativo.", "erro")
             return redirect(url_for("caixa"))
+        operador = request.form.get("operador", "").strip() or None
 
         agora = datetime.now()
         conn.execute(
-            "INSERT INTO caixa (data, hora_abertura, valor_abertura) VALUES (?, ?, ?)",
-            (agora.date().isoformat(), agora.isoformat(timespec="seconds"), valor_abertura),
+            "INSERT INTO caixa (data, hora_abertura, valor_abertura, operador_abertura) VALUES (?, ?, ?, ?)",
+            (agora.date().isoformat(), agora.isoformat(timespec="seconds"), valor_abertura, operador),
         )
         conn.commit()
         flash("Caixa aberto.", "ok")
@@ -493,13 +693,51 @@ def caixa_fechar():
             return redirect(url_for("caixa"))
 
         observacoes = request.form.get("observacoes", "").strip() or None
+        operador = request.form.get("operador", "").strip() or None
         agora = datetime.now()
         conn.execute(
-            "UPDATE caixa SET hora_fechamento = ?, valor_fechamento = ?, observacoes = ? WHERE id = ?",
-            (agora.isoformat(timespec="seconds"), valor_fechamento, observacoes, aberto["id"]),
+            "UPDATE caixa SET hora_fechamento = ?, valor_fechamento = ?, observacoes = ?, operador_fechamento = ? "
+            "WHERE id = ?",
+            (agora.isoformat(timespec="seconds"), valor_fechamento, observacoes, operador, aberto["id"]),
         )
         conn.commit()
         flash("Caixa fechado.", "ok")
+        return redirect(url_for("caixa"))
+    finally:
+        conn.close()
+
+
+@app.route("/caixa/movimentacao", methods=["POST"])
+def caixa_movimentacao():
+    conn = get_conn()
+    try:
+        aberto = obter_caixa_aberto(conn)
+        if aberto is None:
+            flash("Não tem caixa aberto pra lançar movimentação.", "erro")
+            return redirect(url_for("caixa"))
+
+        tipo = request.form.get("tipo", "")
+        if tipo not in ("sangria", "reforco"):
+            flash("Tipo de movimentação inválido.", "erro")
+            return redirect(url_for("caixa"))
+
+        try:
+            valor = float(request.form.get("valor", "").replace(",", "."))
+        except ValueError:
+            flash("Valor inválido.", "erro")
+            return redirect(url_for("caixa"))
+        if valor <= 0:
+            flash("Valor deve ser maior que zero.", "erro")
+            return redirect(url_for("caixa"))
+
+        motivo = request.form.get("motivo", "").strip() or None
+        conn.execute(
+            "INSERT INTO caixa_movimentacoes (caixa_id, tipo, valor, motivo, hora) VALUES (?, ?, ?, ?, ?)",
+            (aberto["id"], tipo, valor, motivo, datetime.now().isoformat(timespec="seconds")),
+        )
+        conn.commit()
+        rotulo = "Sangria" if tipo == "sangria" else "Reforço"
+        flash(f"{rotulo} de R$ {valor:.2f} registrada.", "ok")
         return redirect(url_for("caixa"))
     finally:
         conn.close()
@@ -635,10 +873,11 @@ def produto_novo():
             return render_template("produto_form.html", modo="novo", valores=valores, erro=erro, categorias=categorias)
 
         conn.execute(
-            "INSERT INTO estoque (sku_ean, descricao, categoria, unidade, custo_unitario, preco_venda, saldo_atual, validade) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO estoque (sku_ean, descricao, categoria, unidade, custo_unitario, preco_venda, saldo_atual, "
+            "validade, estoque_minimo, favorito) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (dados["sku_ean"], dados["descricao"], dados["categoria"], dados["unidade"],
-             dados["custo_unitario"], dados["preco_venda"], dados["saldo_atual"], dados["validade"]),
+             dados["custo_unitario"], dados["preco_venda"], dados["saldo_atual"], dados["validade"],
+             dados["estoque_minimo"], dados["favorito"]),
         )
         conn.commit()
         return redirect(url_for("estoque", busca=dados["descricao"]))
@@ -666,10 +905,11 @@ def produto_editar(sku):
             return render_template("produto_form.html", modo="editar", valores=valores, erro=erro, categorias=categorias)
 
         conn.execute(
-            "UPDATE estoque SET descricao=?, categoria=?, unidade=?, custo_unitario=?, preco_venda=?, saldo_atual=?, validade=? "
-            "WHERE sku_ean=?",
+            "UPDATE estoque SET descricao=?, categoria=?, unidade=?, custo_unitario=?, preco_venda=?, saldo_atual=?, "
+            "validade=?, estoque_minimo=?, favorito=? WHERE sku_ean=?",
             (dados["descricao"], dados["categoria"], dados["unidade"], dados["custo_unitario"],
-             dados["preco_venda"], dados["saldo_atual"], dados["validade"], sku),
+             dados["preco_venda"], dados["saldo_atual"], dados["validade"], dados["estoque_minimo"],
+             dados["favorito"], sku),
         )
         conn.commit()
         return redirect(url_for("estoque", busca=dados["descricao"]))
@@ -758,7 +998,7 @@ def historico():
     conn = get_conn()
     try:
         vendas = conn.execute(
-            "SELECT id, data_venda, produto_nome_raw, sku_ean, quantidade, valor_total, forma_pagamento "
+            "SELECT id, data_venda, produto_nome_raw, sku_ean, quantidade, valor_total, forma_pagamento, venda_grupo "
             "FROM vendas ORDER BY id DESC LIMIT 50"
         ).fetchall()
         compras_lista = conn.execute(
@@ -779,6 +1019,7 @@ def venda_editar(venda_id):
         venda_row = conn.execute("SELECT * FROM vendas WHERE id = ?", (venda_id,)).fetchone()
         if not venda_row:
             abort(404)
+        formas_pagamento = obter_formas_pagamento(conn)
 
         if request.method == "GET":
             preco_atual = round(venda_row["valor_total"] / venda_row["quantidade"], 2) if venda_row["quantidade"] else 0
@@ -789,7 +1030,7 @@ def venda_editar(venda_id):
                 "data_venda": venda_row["data_venda"],
             }
             return render_template("venda_editar.html", venda=venda_row, valores=valores, erro=None,
-                                    formas_pagamento=FORMAS_PAGAMENTO)
+                                    formas_pagamento=formas_pagamento)
 
         valores = {
             "quantidade": request.form.get("quantidade", ""),
@@ -803,16 +1044,16 @@ def venda_editar(venda_id):
         except (TypeError, ValueError):
             return render_template("venda_editar.html", venda=venda_row, valores=valores,
                                     erro="Quantidade e preço precisam ser números.",
-                                    formas_pagamento=FORMAS_PAGAMENTO)
+                                    formas_pagamento=formas_pagamento)
         if nova_quantidade <= 0 or novo_preco < 0:
             return render_template("venda_editar.html", venda=venda_row, valores=valores,
                                     erro="Quantidade deve ser maior que zero e preço não pode ser negativo.",
-                                    formas_pagamento=FORMAS_PAGAMENTO)
+                                    formas_pagamento=formas_pagamento)
 
         forma_pagamento = valores["forma_pagamento"] or None
-        if forma_pagamento is not None and forma_pagamento not in FORMAS_PAGAMENTO:
+        if forma_pagamento is not None and forma_pagamento not in formas_pagamento:
             return render_template("venda_editar.html", venda=venda_row, valores=valores,
-                                    erro="Forma de pagamento inválida.", formas_pagamento=FORMAS_PAGAMENTO)
+                                    erro="Forma de pagamento inválida.", formas_pagamento=formas_pagamento)
 
         data_venda = valores["data_venda"].strip() or venda_row["data_venda"]
 
@@ -855,6 +1096,29 @@ def venda_excluir(venda_id):
         conn.execute("DELETE FROM vendas WHERE id = ?", (venda_id,))
         conn.commit()
         return redirect(url_for("historico"))
+    finally:
+        conn.close()
+
+
+@app.route("/vendas/grupo/<grupo>/comprovante")
+def venda_comprovante(grupo):
+    conn = get_conn()
+    try:
+        itens = conn.execute(
+            "SELECT produto_nome_raw, quantidade, valor_total, forma_pagamento, data_venda "
+            "FROM vendas WHERE venda_grupo = ? ORDER BY id",
+            (grupo,),
+        ).fetchall()
+        if not itens:
+            abort(404)
+
+        total = sum(i["valor_total"] for i in itens)
+        nome_loja = obter_config(conn, "nome_loja") or ""
+        return render_template(
+            "comprovante.html", itens=itens, total=total,
+            forma_pagamento=itens[0]["forma_pagamento"], data_venda=itens[0]["data_venda"],
+            nome_loja=nome_loja,
+        )
     finally:
         conn.close()
 
@@ -945,54 +1209,186 @@ def compra_excluir(compra_id):
         conn.close()
 
 
+def obter_periodo_relatorio():
+    hoje = date.today().isoformat()
+    data_ini = request.args.get("data_ini", hoje) or hoje
+    data_fim = request.args.get("data_fim", hoje) or hoje
+    return data_ini, data_fim, hoje
+
+
+def obter_dados_relatorio(conn, data_ini, data_fim):
+    resumo = conn.execute(
+        "SELECT COUNT(*) AS lancamentos, COALESCE(SUM(quantidade),0) AS itens, "
+        "COALESCE(SUM(valor_total),0) AS total "
+        "FROM vendas WHERE data_venda BETWEEN ? AND ?",
+        (data_ini, data_fim),
+    ).fetchone()
+
+    por_pagamento = conn.execute(
+        "SELECT COALESCE(forma_pagamento, 'Não informada') AS forma, COUNT(*) AS lancamentos, "
+        "COALESCE(SUM(quantidade),0) AS itens, COALESCE(SUM(valor_total),0) AS total "
+        "FROM vendas WHERE data_venda BETWEEN ? AND ? "
+        "GROUP BY forma ORDER BY total DESC",
+        (data_ini, data_fim),
+    ).fetchall()
+
+    mais_vendidos = conn.execute(
+        "SELECT produto_nome_raw AS produto, SUM(quantidade) AS qtd, SUM(valor_total) AS total "
+        "FROM vendas WHERE data_venda BETWEEN ? AND ? "
+        "GROUP BY COALESCE(sku_ean, produto_nome_raw) "
+        "ORDER BY total DESC LIMIT 20",
+        (data_ini, data_fim),
+    ).fetchall()
+
+    compras_periodo = conn.execute(
+        "SELECT COUNT(*) AS lancamentos, COALESCE(SUM(quantidade * custo_unitario),0) AS total "
+        "FROM compras WHERE data_compra BETWEEN ? AND ?",
+        (data_ini, data_fim),
+    ).fetchone()
+
+    return {
+        "resumo": resumo, "por_pagamento": por_pagamento,
+        "mais_vendidos": mais_vendidos, "compras_periodo": compras_periodo,
+    }
+
+
 @app.route("/relatorios")
 def relatorios():
     conn = get_conn()
     try:
-        hoje = date.today().isoformat()
-        data_ini = request.args.get("data_ini", hoje) or hoje
-        data_fim = request.args.get("data_fim", hoje) or hoje
-
-        resumo = conn.execute(
-            "SELECT COUNT(*) AS lancamentos, COALESCE(SUM(quantidade),0) AS itens, "
-            "COALESCE(SUM(valor_total),0) AS total "
-            "FROM vendas WHERE data_venda BETWEEN ? AND ?",
-            (data_ini, data_fim),
-        ).fetchone()
-
-        por_pagamento = conn.execute(
-            "SELECT COALESCE(forma_pagamento, 'Não informada') AS forma, COUNT(*) AS lancamentos, "
-            "COALESCE(SUM(quantidade),0) AS itens, COALESCE(SUM(valor_total),0) AS total "
-            "FROM vendas WHERE data_venda BETWEEN ? AND ? "
-            "GROUP BY forma ORDER BY total DESC",
-            (data_ini, data_fim),
-        ).fetchall()
-
-        mais_vendidos = conn.execute(
-            "SELECT produto_nome_raw AS produto, SUM(quantidade) AS qtd, SUM(valor_total) AS total "
-            "FROM vendas WHERE data_venda BETWEEN ? AND ? "
-            "GROUP BY COALESCE(sku_ean, produto_nome_raw) "
-            "ORDER BY total DESC LIMIT 20",
-            (data_ini, data_fim),
-        ).fetchall()
-
-        compras_periodo = conn.execute(
-            "SELECT COUNT(*) AS lancamentos, COALESCE(SUM(quantidade * custo_unitario),0) AS total "
-            "FROM compras WHERE data_compra BETWEEN ? AND ?",
-            (data_ini, data_fim),
-        ).fetchone()
-
+        data_ini, data_fim, hoje = obter_periodo_relatorio()
+        dados = obter_dados_relatorio(conn, data_ini, data_fim)
         return render_template(
             "relatorios.html",
-            data_ini=data_ini, data_fim=data_fim, hoje=hoje,
-            resumo=resumo, por_pagamento=por_pagamento,
-            mais_vendidos=mais_vendidos, compras_periodo=compras_periodo,
+            data_ini=data_ini, data_fim=data_fim, hoje=hoje, **dados,
+        )
+    finally:
+        conn.close()
+
+
+@app.route("/relatorios/csv")
+def relatorios_csv():
+    conn = get_conn()
+    try:
+        data_ini, data_fim, _ = obter_periodo_relatorio()
+        dados = obter_dados_relatorio(conn, data_ini, data_fim)
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=";")
+        writer.writerow([f"Relatório de {formatar_data_br(data_ini)} a {formatar_data_br(data_fim)}"])
+        writer.writerow([])
+
+        writer.writerow(["Resumo do período"])
+        writer.writerow(["Lançamentos", "Itens vendidos", "Total vendido (R$)"])
+        writer.writerow([dados["resumo"]["lancamentos"], dados["resumo"]["itens"],
+                          f"{dados['resumo']['total']:.2f}"])
+        writer.writerow([])
+
+        writer.writerow(["Por forma de pagamento"])
+        writer.writerow(["Forma", "Lançamentos", "Itens", "Total (R$)"])
+        for p in dados["por_pagamento"]:
+            writer.writerow([p["forma"], p["lancamentos"], p["itens"], f"{p['total']:.2f}"])
+        writer.writerow([])
+
+        writer.writerow(["Produtos mais vendidos (top 20 por valor)"])
+        writer.writerow(["Produto", "Qtd vendida", "Total (R$)"])
+        for m in dados["mais_vendidos"]:
+            writer.writerow([m["produto"], m["qtd"], f"{m['total']:.2f}"])
+        writer.writerow([])
+
+        writer.writerow(["Compras no período"])
+        writer.writerow(["Lançamentos", "Total gasto (R$)"])
+        writer.writerow([dados["compras_periodo"]["lancamentos"], f"{dados['compras_periodo']['total']:.2f}"])
+
+        conteudo = "﻿" + buffer.getvalue()  # BOM: Excel abre acentuacao certa sem precisar importar manualmente
+        nome_arquivo = f"relatorio_{data_ini}_a_{data_fim}.csv"
+        return Response(
+            conteudo, mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={nome_arquivo}"},
+        )
+    finally:
+        conn.close()
+
+
+@app.route("/relatorios/pdf")
+def relatorios_pdf():
+    conn = get_conn()
+    try:
+        data_ini, data_fim, _ = obter_periodo_relatorio()
+        dados = obter_dados_relatorio(conn, data_ini, data_fim)
+        nome_loja = obter_config(conn, "nome_loja") or "fluxu"
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, nome_loja, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 8, f"Relatório de {formatar_data_br(data_ini)} a {formatar_data_br(data_fim)}",
+                 new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+        def titulo_secao(texto):
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 8, texto, new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("Helvetica", "", 10)
+
+        def linha_tabela(colunas, larguras):
+            for texto, largura in zip(colunas, larguras):
+                pdf.cell(largura, 7, str(texto), border=1)
+            pdf.ln()
+
+        titulo_secao("Resumo do período")
+        linha_tabela(["Lançamentos", "Itens vendidos", "Total vendido"], [50, 50, 50])
+        linha_tabela([dados["resumo"]["lancamentos"], dados["resumo"]["itens"],
+                      f"R$ {dados['resumo']['total']:.2f}"], [50, 50, 50])
+        pdf.ln(4)
+
+        titulo_secao("Por forma de pagamento")
+        linha_tabela(["Forma", "Lançamentos", "Itens", "Total"], [50, 40, 30, 40])
+        for p in dados["por_pagamento"]:
+            linha_tabela([p["forma"], p["lancamentos"], p["itens"], f"R$ {p['total']:.2f}"], [50, 40, 30, 40])
+        pdf.ln(4)
+
+        titulo_secao("Produtos mais vendidos (top 20 por valor)")
+        linha_tabela(["Produto", "Qtd", "Total"], [100, 30, 40])
+        for m in dados["mais_vendidos"]:
+            linha_tabela([m["produto"][:45], m["qtd"], f"R$ {m['total']:.2f}"], [100, 30, 40])
+        pdf.ln(4)
+
+        titulo_secao("Compras no período")
+        linha_tabela(["Lançamentos", "Total gasto"], [50, 50])
+        linha_tabela([dados["compras_periodo"]["lancamentos"],
+                      f"R$ {dados['compras_periodo']['total']:.2f}"], [50, 50])
+
+        nome_arquivo = f"relatorio_{data_ini}_a_{data_fim}.pdf"
+        return Response(
+            bytes(pdf.output()), mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={nome_arquivo}"},
         )
     finally:
         conn.close()
 
 
 FRASE_CONFIRMACAO_ZERAR = "LIMPAR TUDO"
+
+
+DIAS_ALERTA_VALIDADE = 30
+
+
+def listar_backups():
+    """Backups existentes, mais recente primeiro, com tamanho em KB."""
+    if not os.path.isdir(BACKUP_DIR):
+        return []
+    itens = []
+    for nome in os.listdir(BACKUP_DIR):
+        if not nome.endswith(".db"):
+            continue
+        caminho = os.path.join(BACKUP_DIR, nome)
+        itens.append({
+            "nome": nome,
+            "tamanho_kb": round(os.path.getsize(caminho) / 1024, 1),
+        })
+    return sorted(itens, key=lambda i: i["nome"], reverse=True)
 
 
 @app.route("/dashboard")
@@ -1007,20 +1403,48 @@ def dashboard():
                 "SELECT COALESCE(SUM(valor_total),0) FROM vendas").fetchone()[0],
         }
 
-        backups_dir = os.path.join(BASE_DIR, "backups")
-        ultimo_backup = None
-        if os.path.isdir(backups_dir):
-            arquivos = [f for f in os.listdir(backups_dir) if f.endswith(".db")]
-            if arquivos:
-                ultimo_backup = sorted(arquivos)[-1]
-
+        backups = listar_backups()
         tamanho_banco_mb = round(os.path.getsize(DB_PATH) / (1024 * 1024), 2) if os.path.exists(DB_PATH) else 0
         nome_loja = obter_config(conn, "nome_loja") or ""
+        formas_pagamento_texto = "\n".join(obter_formas_pagamento(conn))
+
+        limite_validade = (date.today() + timedelta(days=DIAS_ALERTA_VALIDADE)).isoformat()
+        alertas = {
+            "sem_saldo": conn.execute(
+                "SELECT sku_ean, descricao, saldo_atual, estoque_minimo FROM estoque "
+                "WHERE saldo_atual IS NOT NULL AND saldo_atual <= COALESCE(estoque_minimo, 0) "
+                "ORDER BY saldo_atual LIMIT 15"
+            ).fetchall(),
+            "sem_preco": conn.execute(
+                "SELECT sku_ean, descricao FROM estoque WHERE preco_venda IS NULL "
+                "ORDER BY descricao LIMIT 15"
+            ).fetchall(),
+            "validade": conn.execute(
+                "SELECT sku_ean, descricao, validade FROM estoque "
+                "WHERE validade IS NOT NULL AND validade <= ? "
+                "ORDER BY validade LIMIT 15",
+                (limite_validade,),
+            ).fetchall(),
+        }
+        contagem_alertas = {
+            "sem_saldo": conn.execute(
+                "SELECT COUNT(*) FROM estoque WHERE saldo_atual IS NOT NULL AND saldo_atual <= COALESCE(estoque_minimo, 0)"
+            ).fetchone()[0],
+            "sem_preco": conn.execute(
+                "SELECT COUNT(*) FROM estoque WHERE preco_venda IS NULL"
+            ).fetchone()[0],
+            "validade": conn.execute(
+                "SELECT COUNT(*) FROM estoque WHERE validade IS NOT NULL AND validade <= ?",
+                (limite_validade,),
+            ).fetchone()[0],
+        }
 
         return render_template(
-            "dashboard.html", stats=stats, ultimo_backup=ultimo_backup,
+            "dashboard.html", stats=stats, backups=backups,
             tamanho_banco_mb=tamanho_banco_mb, frase_confirmacao=FRASE_CONFIRMACAO_ZERAR,
-            nome_loja=nome_loja,
+            nome_loja=nome_loja, formas_pagamento_texto=formas_pagamento_texto,
+            alertas=alertas, contagem_alertas=contagem_alertas,
+            dias_alerta_validade=DIAS_ALERTA_VALIDADE, versao_sistema=obter_versao_sistema(),
         )
     finally:
         conn.close()
@@ -1037,6 +1461,34 @@ def dashboard_loja():
         return redirect(url_for("dashboard"))
     finally:
         conn.close()
+
+
+@app.route("/dashboard/formas-pagamento", methods=["POST"])
+def dashboard_formas_pagamento():
+    conn = get_conn()
+    try:
+        bruto = request.form.get("formas_pagamento", "")
+        formas = [linha.strip() for linha in bruto.splitlines() if linha.strip()]
+        if not formas:
+            flash("Informe pelo menos uma forma de pagamento.", "erro")
+            return redirect(url_for("dashboard"))
+        definir_config(conn, "formas_pagamento", "\n".join(formas))
+        conn.commit()
+        flash("Formas de pagamento atualizadas.", "ok")
+        return redirect(url_for("dashboard"))
+    finally:
+        conn.close()
+
+
+@app.route("/dashboard/backup", methods=["POST"])
+def dashboard_backup():
+    try:
+        backup_diario.main()
+        flash("Backup criado agora.", "ok")
+    except Exception as e:
+        print(f"Falha ao criar backup manual: {e!r}")
+        flash("Falha ao criar o backup — confira a janela do servidor pra ver o erro.", "erro")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/dashboard/zerar", methods=["POST"])
