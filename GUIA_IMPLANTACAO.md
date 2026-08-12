@@ -12,9 +12,11 @@ Arquivos importantes que devem estar dentro:
 
 - `app.py`, `schema.sql`, `templates\`, `static\` — o sistema em si
 - `estoque.db` — **o banco já vem com os 915 produtos do catálogo Petro
-  cadastrados, e vendas/compras/caixa zerados** (pronto pra começar do zero
-  hoje). **Sem senha definida ainda** — o primeiro acesso vai pedir pra
-  criar a senha do sistema (ver passo 6).
+  cadastrados (nome/categoria), e vendas/compras/caixa zerados** (pronto pra
+  começar do zero hoje). **Saldo em estoque e preço de venda também vêm
+  vazios de propósito** — ver aviso importante logo abaixo. **A senha do
+  sistema e o nome da loja já foram configurados** (não vai pedir pra criar
+  senha de novo — use a que já foi combinada com a equipe).
 - `registrar_venda.py` — versão de terminal (alternativa se o navegador
   falhar por algum motivo)
 - `importar_complemento.py` — pra acrescentar categorias novas do Petro no
@@ -30,6 +32,17 @@ copiar o arquivo antigo por engano, também não tem problema.
 migração de quando o catálogo foi montado, já tem um aviso grande escrito nele
 pra não ser usado por engano, e nem funcionaria no PC novo (depende de
 planilhas que só existem no PC de desenvolvimento).
+
+> **Importante antes de abrir pro público**: o cadastro tem os 915 produtos
+> (nome, categoria), mas **nenhum saldo em estoque nem preço de venda** —
+> isso foi zerado de propósito, pra loja começar com números reais, não com
+> um chute de quando o catálogo foi montado. O sistema até funciona sem isso
+> (avisa "sem contagem" e deixa vender, ou pede o preço na hora), mas pra
+> operar direito é preciso, antes de abrir:
+> 1. **Contar o estoque físico** de cada produto (tela **Inventário**).
+> 2. **Cadastrar o preço de venda** de cada produto (tela **Estoque** → editar,
+>    um por um, ou peça pro gerente ir cadastrando aos poucos nos primeiros
+>    dias, começando pelos itens mais vendidos).
 
 ## 1. Instalar o Python no PC novo
 
@@ -50,7 +63,7 @@ planilhas que só existem no PC de desenvolvimento).
    desligue o alias do `python.exe`/`python3.exe`. Teste `python --version`
    de novo depois.
 
-4. Instale as dependências (hoje só o Flask, mas isso pode crescer):
+4. Instale as dependências (Flask e fpdf2, hoje — a lista pode crescer):
    ```
    pip install -r requirements.txt
    ```
@@ -137,12 +150,13 @@ dias sozinho). Agende ele pra rodar todo dia:
 ou pasta do OneDrive/Google Drive. Backup que mora só no mesmo PC do sistema
 não protege contra o PC quebrar, ser roubado, etc.
 
-## 6. Definir a senha do sistema
+## 6. Senha do sistema
 
-O sistema inteiro pede login (senha única, compartilhada pela equipe). Na
-primeira vez que alguém abrir o sistema nesse PC, em vez de pedir a senha ele
-vai pedir pra **definir** uma — é só digitar a senha desejada duas vezes.
-Depois disso, todo mundo usa essa mesma senha pra entrar.
+O sistema inteiro pede login (senha única, compartilhada pela equipe). **Esse
+banco já vem com uma senha definida** — se for a primeira vez que alguém abre
+o sistema num PC e ele *pedir pra criar* a senha (em vez de só pedir pra
+entrar), é sinal de que está usando um banco vazio, não o `estoque.db` real
+com os produtos — confira o passo 0.
 
 Pra trocar a senha depois, é em **Dashboard → Trocar senha do sistema**
 (precisa saber a senha atual).
@@ -167,14 +181,17 @@ como impressora padrão do Windows nesse PC.
       Idioma). O sistema grava a data da venda automaticamente a partir do
       relógio do PC — se estiver errado, toda venda do dia fica com data
       errada.
-- [ ] Definiu a senha do sistema (passo 6).
+- [ ] Confirmou que a senha do sistema é a combinada com a equipe (passo 6).
+- [ ] **Fez (ou começou) a contagem de estoque e cadastro de preços** — pelo
+      menos os produtos mais vendidos, antes de abrir pro público (ver aviso
+      no passo 0).
 - [ ] Testou registrar uma venda de ponta a ponta neste PC — **lembrando
       que precisa abrir o caixa primeiro** (tela Caixa) antes da tela de
       Venda liberar.
 - [ ] Testou acessar de outro PC/caixa pela rede.
 - [ ] Testou o backup manualmente (passo 5).
-- [ ] Configurou o nome da loja e testou o "Imprimir comprovante" (passo 7),
-      se for usar.
+- [ ] Confirmou o nome da loja (Dashboard) e testou o "Imprimir comprovante"
+      (passo 7), se for usar.
 - [ ] Reiniciou o PC pra confirmar que o auto-início funciona.
 - [ ] Equipe sabe onde fica o atalho/endereço pra abrir o sistema, a senha,
       e como abrir/fechar caixa (ver `GUIA_OPERADOR.md`).
@@ -234,10 +251,11 @@ problema, mas é grátis se garantir.
 ## Limitações que você decidiu aceitar por enquanto (revisitar quando fizer
 ## sentido)
 
-- **Uma senha só, compartilhada por todo mundo.** Não dá pra saber qual
-  funcionário fez qual venda ou correção — se isso passar a importar (ex.:
-  equipe cresceu, precisa apurar responsabilidade por um erro), o próximo
-  passo seria contas individuais por funcionário.
+- **Uma senha só, compartilhada por todo mundo.** Não dá pra saber ao certo
+  qual funcionário fez qual venda ou correção — existe um campo opcional de
+  "nome de quem abriu/fechou o caixa" que ajuda a apurar diferença de turno,
+  mas não é um login de verdade por pessoa. Se isso passar a importar (ex.:
+  equipe cresceu), o próximo passo seria contas individuais por funcionário.
 - **Acesso só na rede local da loja.** Ver os relatórios de fora da loja
   (do celular, de casa) não está configurado — isso exigiria expor o
   sistema pra internet de forma segura, um projeto à parte, não incluído aqui.
