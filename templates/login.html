@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Entrar — fluxu</title>
+    <script>
+        if (localStorage.getItem("tema") === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+        }
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>

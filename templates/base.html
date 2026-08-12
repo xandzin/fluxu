@@ -4,24 +4,70 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block titulo %}{% endblock %} — fluxu</title>
+    <script>
+        // Aplica o tema salvo ANTES da pagina pintar, pra nao piscar o tema
+        // errado por uma fracao de segundo a cada navegacao (aqui e site
+        // multi-pagina, sem isso cada clique recarregaria do zero no escuro).
+        if (localStorage.getItem("tema") === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+        }
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    {% macro icone(nome) %}
+    <svg class="icone-nav" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        {%- if nome == "venda" -%}
+        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        {%- elif nome == "compras" -%}
+        <path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path>
+        {%- elif nome == "inventario" -%}
+        <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"></path>
+        <path d="M8 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+        <path d="M9 12l2 2 4-4"></path>
+        {%- elif nome == "estoque" -%}
+        <path d="M21 8L12 3 3 8l9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path>
+        {%- elif nome == "caixa" -%}
+        <rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M2 10h20"></path><path d="M6 15h4"></path>
+        {%- elif nome == "historico" -%}
+        <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path>
+        {%- elif nome == "relatorios" -%}
+        <path d="M4 20V10"></path><path d="M12 20V4"></path><path d="M20 20v-7"></path>
+        {%- elif nome == "dashboard" -%}
+        <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+        {%- elif nome == "sair" -%}
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path>
+        {%- endif -%}
+    </svg>
+    {% endmacro %}
     <header class="topo">
         <div class="marca-bloco">
             <span class="marca"><span class="marca-ponto"></span>fluxu</span>
             <span class="marca-tagline">seu ponto de venda, sem atrito</span>
         </div>
         <nav>
-            <a href="{{ url_for('venda') }}">Venda</a>
-            <a href="{{ url_for('compras') }}">Compras</a>
-            <a href="{{ url_for('inventario') }}">Inventário</a>
-            <a href="{{ url_for('estoque') }}">Estoque</a>
-            <a href="{{ url_for('caixa') }}">Caixa</a>
-            <a href="{{ url_for('historico') }}">Histórico</a>
-            <a href="{{ url_for('relatorios') }}">Relatórios</a>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('logout') }}">Sair</a>
+            <a href="{{ url_for('venda') }}">{{ icone("venda") }}Venda</a>
+            <a href="{{ url_for('compras') }}">{{ icone("compras") }}Compras</a>
+            <a href="{{ url_for('inventario') }}">{{ icone("inventario") }}Inventário</a>
+            <a href="{{ url_for('estoque') }}">{{ icone("estoque") }}Estoque</a>
+            <a href="{{ url_for('caixa') }}">{{ icone("caixa") }}Caixa</a>
+            <a href="{{ url_for('historico') }}">{{ icone("historico") }}Histórico</a>
+            <a href="{{ url_for('relatorios') }}">{{ icone("relatorios") }}Relatórios</a>
+            <a href="{{ url_for('dashboard') }}">{{ icone("dashboard") }}Dashboard</a>
+            <a href="{{ url_for('logout') }}">{{ icone("sair") }}Sair</a>
+            <button id="botao-tema" class="botao-tema" type="button" aria-label="Alternar tema claro/escuro" title="Alternar tema claro/escuro">
+                <svg class="icone-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+                </svg>
+                <svg class="icone-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
         </nav>
     </header>
     <main>
@@ -34,5 +80,17 @@
         {% endwith %}
         {% block conteudo %}{% endblock %}
     </main>
+    <script>
+        document.getElementById("botao-tema").addEventListener("click", function () {
+            var claroAtivo = document.documentElement.getAttribute("data-theme") === "light";
+            if (claroAtivo) {
+                document.documentElement.removeAttribute("data-theme");
+                localStorage.setItem("tema", "dark");
+            } else {
+                document.documentElement.setAttribute("data-theme", "light");
+                localStorage.setItem("tema", "light");
+            }
+        });
+    </script>
 </body>
 </html>
