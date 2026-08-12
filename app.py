@@ -768,28 +768,41 @@ def estoque():
         where_sql = f"WHERE {' AND '.join(where)}" if where else ""
         total = conn.execute(f"SELECT COUNT(*) FROM estoque {where_sql}", params).fetchone()[0]
 
-        LIMITE = 200
+        LIMITE = 100
+        colunas_ordenaveis = ("sku_ean", "descricao", "categoria", "custo_unitario",
+                               "preco_venda", "saldo_atual", "validade")
+        ordenar = request.args.get("ordenar", "categoria")
+        if ordenar not in colunas_ordenaveis:
+            ordenar = "categoria"
+        direcao = request.args.get("direcao", "asc")
+        if direcao not in ("asc", "desc"):
+            direcao = "asc"
+        ordem_sql = f"{ordenar} {direcao.upper()}"
+        if ordenar != "descricao":
+            ordem_sql += ", descricao ASC"  # desempate estavel, lista nunca fica "embaralhada"
+
+        total_paginas = max(1, -(-total // LIMITE))  # arredonda pra cima
+        try:
+            pagina = max(1, min(int(request.args.get("pagina", "1")), total_paginas))
+        except ValueError:
+            pagina = 1
+        offset = (pagina - 1) * LIMITE
+
         itens = conn.execute(
-            f"SELECT * FROM estoque {where_sql} ORDER BY categoria, descricao LIMIT ?",
-            params + [LIMITE],
+            f"SELECT * FROM estoque {where_sql} ORDER BY {ordem_sql} LIMIT ? OFFSET ?",
+            params + [LIMITE, offset],
         ).fetchall()
 
-        # Totais por categoria (sobre TODOS os itens que batem no filtro, nao
-        # so os 200 exibidos). saldo*custo/preco so soma quando os dois sao
-        # conhecidos — item sem saldo contado ou sem preco nao entra na conta,
-        # entao os totais sao parciais ate o inventario estar completo.
-        totais_categoria = conn.execute(
-            f"SELECT categoria, COUNT(*) AS itens, "
-            f"COALESCE(SUM(saldo_atual),0) AS qtd_total, "
-            f"COALESCE(SUM(saldo_atual * custo_unitario),0) AS valor_custo, "
-            f"COALESCE(SUM(saldo_atual * preco_venda),0) AS valor_venda "
-            f"FROM estoque {where_sql} GROUP BY categoria ORDER BY categoria",
-            params,
-        ).fetchall()
-        total_geral = {
-            "valor_custo": sum(c["valor_custo"] for c in totais_categoria),
-            "valor_venda": sum(c["valor_venda"] for c in totais_categoria),
-        }
+        args_filtro = {"busca": busca or None, "categoria": categoria_sel or None,
+                        "sem_preco": "1" if sem_preco else None}
+        args_filtro = {k: v for k, v in args_filtro.items() if v}
+
+        def link_ordenacao(coluna):
+            nova_direcao = "desc" if (ordenar == coluna and direcao == "asc") else "asc"
+            return url_for("estoque", ordenar=coluna, direcao=nova_direcao, **args_filtro)
+
+        def link_pagina(numero):
+            return url_for("estoque", pagina=numero, ordenar=ordenar, direcao=direcao, **args_filtro)
 
         return render_template(
             "estoque.html",
@@ -800,8 +813,12 @@ def estoque():
             sem_preco=sem_preco,
             total=total,
             limite=LIMITE,
-            totais_categoria=totais_categoria,
-            total_geral=total_geral,
+            pagina=pagina,
+            total_paginas=total_paginas,
+            ordenar=ordenar,
+            direcao=direcao,
+            link_ordenacao=link_ordenacao,
+            link_pagina=link_pagina,
         )
     finally:
         conn.close()
@@ -1252,15 +1269,38 @@ def obter_dados_relatorio(conn, data_ini, data_fim):
     }
 
 
+def obter_valor_estoque_por_categoria(conn):
+    """Valor parado em estoque, por categoria — situacao ATUAL do catalogo,
+    sem relacao com o periodo filtrado em Relatorios (isso aqui e uma foto de
+    agora, nao um acumulado de vendas/compras). So soma item que ja tem saldo
+    contado E custo/preco cadastrado — com o inventario incompleto, os totais
+    ficam parciais ate todo item ter as duas informacoes."""
+    totais_categoria = conn.execute(
+        "SELECT categoria, COUNT(*) AS itens, "
+        "COALESCE(SUM(saldo_atual),0) AS qtd_total, "
+        "COALESCE(SUM(saldo_atual * custo_unitario),0) AS valor_custo, "
+        "COALESCE(SUM(saldo_atual * preco_venda),0) AS valor_venda "
+        "FROM estoque GROUP BY categoria ORDER BY categoria"
+    ).fetchall()
+    total_geral = {
+        "valor_custo": sum(c["valor_custo"] for c in totais_categoria),
+        "valor_venda": sum(c["valor_venda"] for c in totais_categoria),
+    }
+    return totais_categoria, total_geral
+
+
 @app.route("/relatorios")
 def relatorios():
     conn = get_conn()
     try:
         data_ini, data_fim, hoje = obter_periodo_relatorio()
         dados = obter_dados_relatorio(conn, data_ini, data_fim)
+        totais_categoria, total_geral_estoque = obter_valor_estoque_por_categoria(conn)
         return render_template(
             "relatorios.html",
-            data_ini=data_ini, data_fim=data_fim, hoje=hoje, **dados,
+            data_ini=data_ini, data_fim=data_fim, hoje=hoje,
+            totais_categoria=totais_categoria, total_geral_estoque=total_geral_estoque,
+            **dados,
         )
     finally:
         conn.close()

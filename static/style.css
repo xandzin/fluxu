@@ -420,6 +420,22 @@ table.tabela-historico { width: 100%; }
 .tabela-estoque tbody tr:hover { background: var(--bg); }
 .saldo-baixo td { color: var(--erro); }
 
+.link-ordenacao {
+    color: var(--texto);
+    text-decoration: none;
+    font-weight: inherit;
+    display: block;
+}
+.link-ordenacao:hover { color: var(--primaria); }
+
+.paginacao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.2rem;
+}
+
 /* Select customizado — remove a aparencia nativa e desenha uma seta simples */
 .select-wrap { position: relative; }
 .select-wrap select {

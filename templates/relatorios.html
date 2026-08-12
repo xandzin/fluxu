@@ -68,4 +68,33 @@
         </tbody>
     </table>
 </section>
+
+<section class="card">
+    <h2>Valor em estoque por categoria</h2>
+    <p class="info">
+        Situação atual do catálogo — não muda com o filtro de período acima. Só soma item que já tem
+        saldo contado <strong>e</strong> custo/preço cadastrado — com o inventário incompleto, esses
+        totais ainda são parciais.
+    </p>
+    <table class="tabela-historico">
+        <thead><tr><th>Categoria</th><th>Itens</th><th>Qtd em estoque</th><th>Valor (custo)</th><th>Valor (venda)</th></tr></thead>
+        <tbody>
+            {% for c in totais_categoria %}
+            <tr>
+                <td>{{ c.categoria or "Sem categoria" }}</td>
+                <td class="mono">{{ c.itens }}</td>
+                <td class="mono">{{ c.qtd_total|round(2) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_custo) }}</td>
+                <td class="mono">R$ {{ "%.2f"|format(c.valor_venda) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="info">Nenhum item encontrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="total-linha">
+        <span>Total geral (custo / venda)</span>
+        <span class="mono">R$ {{ "%.2f"|format(total_geral_estoque.valor_custo) }} / R$ {{ "%.2f"|format(total_geral_estoque.valor_venda) }}</span>
+    </div>
+</section>
 {% endblock %}

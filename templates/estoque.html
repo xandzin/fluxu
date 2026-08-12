@@ -29,47 +29,23 @@
 </form>
 
 <p class="info">
-    {{ total }} item(ns) encontrado(s){% if total > limite %}, mostrando os primeiros {{ limite }} — refine a busca{% endif %}.
+    {{ total }} item(ns) encontrado(s){% if total_paginas > 1 %} — página {{ pagina }} de {{ total_paginas }}{% endif %}.
 </p>
 
-<section class="card">
-    <h2>Valor em estoque por categoria</h2>
-    <p class="info">
-        Só soma item que já tem saldo contado <strong>e</strong> custo/preço cadastrado — com o inventário
-        incompleto, esses totais ainda são parciais.
-    </p>
-    <table class="tabela-historico">
-        <thead><tr><th>Categoria</th><th>Itens</th><th>Qtd em estoque</th><th>Valor (custo)</th><th>Valor (venda)</th></tr></thead>
-        <tbody>
-            {% for c in totais_categoria %}
-            <tr>
-                <td>{{ c.categoria or "Sem categoria" }}</td>
-                <td class="mono">{{ c.itens }}</td>
-                <td class="mono">{{ c.qtd_total|round(2) }}</td>
-                <td class="mono">R$ {{ "%.2f"|format(c.valor_custo) }}</td>
-                <td class="mono">R$ {{ "%.2f"|format(c.valor_venda) }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5" class="info">Nenhum item encontrado.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="total-linha">
-        <span>Total geral (custo / venda)</span>
-        <span class="mono">R$ {{ "%.2f"|format(total_geral.valor_custo) }} / R$ {{ "%.2f"|format(total_geral.valor_venda) }}</span>
-    </div>
-</section>
+{% macro cabecalho(coluna, rotulo) %}
+<th><a href="{{ link_ordenacao(coluna) }}" class="link-ordenacao">{{ rotulo }}{% if ordenar == coluna %} {{ "▲" if direcao == "asc" else "▼" }}{% endif %}</a></th>
+{% endmacro %}
 
 <table class="tabela-estoque">
     <thead>
         <tr>
-            <th>SKU/EAN</th>
-            <th>Descrição</th>
-            <th>Categoria</th>
-            <th>Custo</th>
-            <th>Preço</th>
-            <th>Saldo</th>
-            <th>Validade</th>
+            {{ cabecalho("sku_ean", "SKU/EAN") }}
+            {{ cabecalho("descricao", "Descrição") }}
+            {{ cabecalho("categoria", "Categoria") }}
+            {{ cabecalho("custo_unitario", "Custo") }}
+            {{ cabecalho("preco_venda", "Preço") }}
+            {{ cabecalho("saldo_atual", "Saldo") }}
+            {{ cabecalho("validade", "Validade") }}
             <th></th>
         </tr>
     </thead>
@@ -90,4 +66,16 @@
         {% endfor %}
     </tbody>
 </table>
+
+{% if total_paginas > 1 %}
+<nav class="paginacao">
+    {% if pagina > 1 %}
+    <a href="{{ link_pagina(pagina - 1) }}" class="secundario botao-link">&laquo; Anterior</a>
+    {% endif %}
+    <span class="info">Página {{ pagina }} de {{ total_paginas }}</span>
+    {% if pagina < total_paginas %}
+    <a href="{{ link_pagina(pagina + 1) }}" class="secundario botao-link">Próxima &raquo;</a>
+    {% endif %}
+</nav>
+{% endif %}
 {% endblock %}
